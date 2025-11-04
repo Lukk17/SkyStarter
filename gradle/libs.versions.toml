@@ -1,34 +1,39 @@
 [versions]
+# https://plugins.gradle.org/plugin/org.springframework.boot
 springBoot = "3.5.7"
+# https://plugins.gradle.org/plugin/io.spring.dependency-management
 springDependencyManagement = "1.1.7"
+# https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui
 springDocOpenApi = "2.8.13"
+# https://plugins.gradle.org/plugin/org.springdoc.openapi-gradle-plugin
 springdocOpenApiPlugin = "1.9.0"
+# https://mvnrepository.com/artifact/org.postgresql/postgresql
 postgres = "42.7.8"
 
+# https://mvnrepository.com/artifact/org.mapstruct/mapstruct
 mapstruct = "1.6.3"
+# https://mvnrepository.com/artifact/org.projectlombok/lombok-mapstruct-binding
 lombokMapstructBinding = "0.2.0"
+# https://mvnrepository.com/artifact/com.google.code.gson/gson
 gson = "2.13.2"
 
+# https://mvnrepository.com/artifact/org.sonarqube/org.sonarqube.gradle.plugin
 sonarqube = "6.3.1.5724"
 # https://plugins.gradle.org/plugin/org.owasp.dependencycheck
 owaspDependencyCheck = "12.1.8"
 # https://plugins.gradle.org/plugin/com.autonomousapps.dependency-analysis
 dependencyAnalysis = "3.4.1"
+# https://plugins.gradle.org/plugin/com.diffplug.spotless
 spotless = "8.0.0"
 
 [plugins]
-# https://plugins.gradle.org/plugin/org.springframework.boot
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
-# https://plugins.gradle.org/plugin/io.spring.dependency-management
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
-# https://plugins.gradle.org/plugin/org.springdoc.openapi-gradle-plugin
 springdoc-openapi = { id = "org.springdoc.openapi-gradle-plugin", version.ref = "springdocOpenApiPlugin" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
-# https://plugins.gradle.org/plugin/org.owasp.dependencycheck
+
 owasp-dependency-check = { id = "org.owasp.dependencycheck", version.ref = "owaspDependencyCheck" }
-# https://plugins.gradle.org/plugin/com.autonomousapps.dependency-analysis
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }
-# https://plugins.gradle.org/plugin/com.diffplug.spotless
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 
 [libraries]
