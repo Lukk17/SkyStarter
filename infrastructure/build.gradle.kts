@@ -1,4 +1,5 @@
 dependencies {
+    implementation(project(":domain"))
     implementation(project(":service"))
 
     implementation(libs.spring.boot.starter.web)
