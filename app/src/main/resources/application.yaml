@@ -1,0 +1,61 @@
+server:
+  port: 7777
+
+spring:
+  application:
+    name: sky-starter
+  datasource:
+    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/starter}"
+    username: "postgres"
+    password: "local"
+    driver-class-name: "org.postgresql.Driver"
+  jpa:
+    properties:
+      hibernate:
+        dialect: "org.hibernate.dialect.PostgreSQLDialect"
+        jdbc:
+          lob:
+            non_contextual_creation: true # to avoid certain issues with PostgreSQL and large object handling
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "https://keycloak:9443/realms/pharma"
+          jwk-set-uri: "https://keycloak:9443/realms/pharma/protocol/openid-connect/certs"
+
+  threads:
+    virtual:
+      enabled: true
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      base-path: "/actuator"
+      exposure:
+        include: "health,info,readiness,liveness"
+
+springdoc:
+  swagger-ui:
+    path: "/openapi/swagger-ui.html"
+    config-url: "/openapi/v3/api-docs/swagger-config"
+    url: "/openapi/v3/api-docs"
+    disable-swagger-default-url: true
+  api-docs:
+    path: "/openapi/v3/api-docs"
+  show-actuator: false
+
+logging:
+  level:
+    root: INFO
+    com.lukksarna: INFO
+
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%-5level) %clr(%.5t){magenta} %clr(%logger{36}){cyan} %clr([SkyStarter]){blue} : %msg%n"

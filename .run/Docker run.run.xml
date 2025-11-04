@@ -1,0 +1,20 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="Docker run" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
+        <deployment type="dockerfile">
+            <settings>
+                <option name="imageTag" value="sky-starter:latest"/>
+                <option name="containerName" value="sky-starter"/>
+                <option name="portBindings">
+                    <list>
+                        <DockerPortBindingImpl>
+                            <option name="containerPort" value="7777"/>
+                            <option name="hostPort" value="7777"/>
+                        </DockerPortBindingImpl>
+                    </list>
+                </option>
+                <option name="sourceFilePath" value="Dockerfile"/>
+            </settings>
+        </deployment>
+        <method v="2"/>
+    </configuration>
+</component>
