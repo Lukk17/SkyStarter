@@ -4,21 +4,34 @@ server:
 spring:
   application:
     name: sky-starter
+  #  As this is a PRIMARY datasource-Axon's Event Store will use this.
   datasource:
-    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/starter}"
+    url: "jdbc:postgresql://localhost:5432/starter"
     username: "postgres"
     password: "local"
     driver-class-name: "org.postgresql.Driver"
+
   jpa:
+    hibernate:
+      ddl-auto: none
     properties:
       hibernate:
-        dialect: "org.hibernate.dialect.PostgreSQLDialect"
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           lob:
-            non_contextual_creation: true # to avoid certain issues with PostgreSQL and large object handling
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+            non_contextual_creation: true
+        temp:
+          use_jdbc_metadata_defaults: false
+
+  # It will automatically use the primary datasource.
+  liquibase:
+    enabled: true
+    change-log: "classpath:db/changelog/postgres-master.yaml"
+
+  # This secondary, separate datasource for projections only.
+  data:
+    mongodb:
+      uri: "mongodb://localhost:27017/starterCollection"
 
   security:
     oauth2:
@@ -29,7 +42,7 @@ spring:
 
   threads:
     virtual:
-      enabled: true
+      enabled: false
 
 management:
   endpoint:
@@ -52,10 +65,29 @@ springdoc:
     path: "/openapi/v3/api-docs"
   show-actuator: false
 
+axon:
+  axonserver:
+    # Axon will use the primary 'spring.datasource' above as aggregate DB
+    enabled: false
+  serializer:
+    events: jackson
+    messages: jackson
+    general: jackson
+  eventhandling:
+    processors:
+      default:
+        mode: tracking # Use tracking event processor by default
+  snapshot:
+    trigger:
+      threshold: 5
+
 logging:
   level:
     root: INFO
     com.lukksarna: INFO
+    # to show SQL and NOSQL queries
+    org.hibernate.SQL: DEBUG
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
 
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%-5level) %clr(%.5t){magenta} %clr(%logger{36}){cyan} %clr([SkyStarter]){blue} : %msg%n"

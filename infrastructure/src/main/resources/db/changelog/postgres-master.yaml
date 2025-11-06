@@ -1,0 +1,3 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/sql/V1__create_event_store.sql

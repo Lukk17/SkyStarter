@@ -25,6 +25,8 @@ owaspDependencyCheck = "12.1.8"
 dependencyAnalysis = "3.4.1"
 # https://plugins.gradle.org/plugin/com.diffplug.spotless
 spotless = "8.0.0"
+axon = "4.9.3"
+liquibase-mongodb = "4.31.1"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
@@ -43,6 +45,7 @@ spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
 spring-boot-starter-oauth2-resourceserver = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server" }
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+spring-boot-starter-data-mongodb = { module = "org.springframework.boot:spring-boot-starter-data-mongodb" }
 
 springdoc-openapi-starter = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springDocOpenApi" }
 
@@ -65,6 +68,14 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 mockito-core = { module = "org.mockito:mockito-core" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter" }
 testcontainers-postgres = { module = "org.testcontainers:postgresql" }
+
+axon-spring-boot-starter = { module = "org.axonframework:axon-spring-boot-starter", version.ref = "axon" }
+axon-modelling = { module = "org.axonframework:axon-modelling", version.ref = "axon" }
+axon-eventsourcing = { module = "org.axonframework:axon-eventsourcing", version.ref = "axon" }
+axon-test = { module = "org.axonframework:axon-test", version.ref = "axon" }
+
+liquibase-core = { module = "org.liquibase:liquibase-core" }
+liquibase-mongodb = { module = "org.liquibase.ext:liquibase-mongodb", version.ref = "liquibase-mongodb" }
 
 [bundles]
 testing-base = ["junit-jupiter", "mockito-core"]

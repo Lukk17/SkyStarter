@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":infrastructure"))
     implementation(libs.spring.boot.starter)
     implementation(libs.postgres)
+    implementation(libs.axon.spring.boot.starter)
 
     developmentOnly(libs.spring.boot.devtools)
 

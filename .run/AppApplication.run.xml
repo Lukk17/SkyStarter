@@ -4,7 +4,7 @@
         <option name="ACTIVE_PROFILES" value="local"/>
         <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources"/>
         <module name="sky-starter.app.main"/>
-        <option name="SPRING_BOOT_MAIN_CLASS" value="com.lukksarna.app.AppApplication"/>
+        <option name="SPRING_BOOT_MAIN_CLASS" value="com.lukksarna.skystarter.app.AppApplication"/>
         <extension name="net.ashald.envfile">
             <option name="IS_ENABLED" value="false"/>
             <option name="IS_SUBST" value="false"/>
