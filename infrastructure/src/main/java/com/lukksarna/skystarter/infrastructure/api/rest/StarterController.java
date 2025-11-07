@@ -38,7 +38,7 @@ public class StarterController {
     @ApiCommonErrorResponses
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @GetMapping("/{skyId}")
-    public CompletableFuture<ResponseEntity<SkyResponse>> getSky(@PathVariable UUID skyId) {
+    public CompletableFuture<ResponseEntity<SkyResponse>> getSky(@PathVariable("skyId") UUID skyId) {
         return skyQueryService
                 .findById(skyId)
                 .thenApply(skyApiMapper::domainToApiResponse)
@@ -65,7 +65,7 @@ public class StarterController {
     @ApiCommonErrorResponses
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PutMapping("/{skyId}")
-    public CompletableFuture<Void> updateSky(@PathVariable UUID skyId, @RequestBody UpdateSkyRequest request) {
+    public CompletableFuture<Void> updateSky(@PathVariable("skyId") UUID skyId, @RequestBody UpdateSkyRequest request) {
         return skyCommandService.updateSky(skyId, request.getName());
     }
 
@@ -77,7 +77,7 @@ public class StarterController {
     @ApiCommonErrorResponses
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @DeleteMapping("/{skyId}")
-    public CompletableFuture<Void> deleteSky(@PathVariable UUID skyId) {
+    public CompletableFuture<Void> deleteSky(@PathVariable("skyId") UUID skyId) {
         return skyCommandService.deleteSky(skyId);
     }
 }

@@ -7,8 +7,9 @@ import com.lukksarna.skystarter.domain.model.Sky;
 import com.lukksarna.skystarter.domain.query.FindSkyByIdQuery;
 import com.lukksarna.skystarter.infrastructure.mapper.SkyPersistenceMapper;
 import com.lukksarna.skystarter.infrastructure.persistence.entity.SkyEntity;
-import com.lukksarna.skystarter.infrastructure.persistence.repository.SkyMongoRepository;
+import com.lukksarna.skystarter.infrastructure.persistence.repository.mongo.SkyMongoRepository;
 import lombok.RequiredArgsConstructor;
+import org.axonframework.config.ProcessingGroup;
 import org.axonframework.eventhandling.EventHandler;
 import org.axonframework.queryhandling.QueryHandler;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,7 @@ import java.util.Optional;
 
 @RequiredArgsConstructor
 @Component
+@ProcessingGroup("sky-projection-processor")
 public class SkyProjection {
 
     private final SkyMongoRepository skyRepository;

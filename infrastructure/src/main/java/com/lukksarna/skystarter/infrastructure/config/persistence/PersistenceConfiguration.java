@@ -7,10 +7,13 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 
 @Configuration
 @EnableMongoRepositories(
-        basePackages = "com.lukksarna.skystarter.infrastructure.persistence"
+        basePackages = "com.lukksarna.skystarter.infrastructure.persistence.repository.mongo"
 )
+// This is required to resolve the "strict repository mode" conflict.
+// By pointing this to an empty package, we prevent the JPA scanner
+// (activated by Axon's dependencies) from finding and conflicting with our Mongo repositories.
 @EnableJpaRepositories(
-        basePackages = "com.lukksarna.skystarter.infrastructure.persistence"
+        basePackages = "com.lukksarna.skystarter.infrastructure.persistence.repository.jpa"
 )
 @EntityScan(
         basePackages = {

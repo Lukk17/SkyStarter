@@ -19,8 +19,6 @@ dependencies {
 
     implementation(libs.axon.spring.boot.starter)
     runtimeOnly(libs.postgres)
-    implementation(libs.liquibase.core)
-    implementation(libs.liquibase.mongodb)
 
     testImplementation(libs.bundles.spring.testing)
     testImplementation(libs.axon.test)

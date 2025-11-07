@@ -1,0 +1,9 @@
+spring:
+  #  As this is a PRIMARY datasource-Axon's Event Store will use this.
+  datasource:
+    url: "jdbc:postgresql://host.docker.internal:5432/starter"
+
+  # This secondary, separate datasource for projections only.
+  data:
+    mongodb:
+      uri: "mongodb://host.docker.internal:27017/starter"

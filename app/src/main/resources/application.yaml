@@ -12,37 +12,34 @@ spring:
     driver-class-name: "org.postgresql.Driver"
 
   jpa:
+    # disable database connection keeping for entire web request
+    open-in-view: false
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
+    database-platform: com.lukksarna.skystarter.infrastructure.config.persistence.ByteaEnforcedPostgresSQLDialect
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc:
           lob:
             non_contextual_creation: true
-        temp:
-          use_jdbc_metadata_defaults: false
-
-  # It will automatically use the primary datasource.
-  liquibase:
-    enabled: true
-    change-log: "classpath:db/changelog/postgres-master.yaml"
+        boot:
+          allow_jdbc_metadata_access: false
 
   # This secondary, separate datasource for projections only.
   data:
     mongodb:
-      uri: "mongodb://localhost:27017/starterCollection"
+      uri: "mongodb://localhost:27017/starter"
 
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: "https://keycloak:9443/realms/pharma"
-          jwk-set-uri: "https://keycloak:9443/realms/pharma/protocol/openid-connect/certs"
+          issuer-uri: "https://keycloak.test:9443/realms/local"
+          jwk-set-uri: "https://keycloak.test:9443/realms/local/protocol/openid-connect/certs"
 
   threads:
     virtual:
-      enabled: false
+      enabled: true
 
 management:
   endpoint:
@@ -75,8 +72,16 @@ axon:
     general: jackson
   eventhandling:
     processors:
-      default:
+      # Use name from your @ProcessingGroup annotation
+      "sky-projection-processor":
         mode: tracking # Use tracking event processor by default
+        # Defines the number of parallel "work queues" (segments) for this processor.
+        # This enables horizontal scaling. A single pod will be "greedy" and claim all 10 segments.
+        # When more pods are added, the segments will automatically rebalance (e.g., 2 pods = 5 segments each).
+        # Event order per aggregate is always guaranteed, as all events for one aggregate will go to the same segment.
+        # Axon rounds the segment count up to the nearest power of 2 (e.g., 10 becomes 16) for optimal hash distribution.
+        initial-segment-count: 8
+  # custom property used in AxonConfig class
   snapshot:
     trigger:
       threshold: 5
@@ -86,7 +91,7 @@ logging:
     root: INFO
     com.lukksarna: INFO
     # to show SQL and NOSQL queries
-    org.hibernate.SQL: DEBUG
+#    org.hibernate.SQL: DEBUG # this will show Axon pulling logs every 1 sec
     org.springframework.data.mongodb.core.MongoTemplate: DEBUG
 
   pattern:

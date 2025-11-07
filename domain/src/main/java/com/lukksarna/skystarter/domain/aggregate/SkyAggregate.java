@@ -7,7 +7,9 @@ import com.lukksarna.skystarter.domain.event.SkyCreatedEvent;
 import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
 import com.lukksarna.skystarter.domain.service.SkyValidator;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.axonframework.commandhandling.CommandHandler;
 import org.axonframework.eventsourcing.EventSourcingHandler;
 import org.axonframework.modelling.command.AggregateIdentifier;
@@ -18,8 +20,10 @@ import java.util.UUID;
 
 import static org.axonframework.modelling.command.AggregateLifecycle.apply;
 
-@Aggregate
 @NoArgsConstructor
+@Getter
+@Setter
+@Aggregate(snapshotTriggerDefinition = "snapshotTriggerDefinition")
 public class SkyAggregate {
 
     @AggregateIdentifier

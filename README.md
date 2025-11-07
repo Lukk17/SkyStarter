@@ -7,7 +7,8 @@
 - [Prerequisites](#prerequisites)
 - [Running](#running)
     - [Local](#local)
-    - [Run configuration](#run-configuration)
+    - [Run Configuration](#run-configuration)
+    - [Terminal Commands](#terminal-commands)
     - [Docker](#docker)
     - [JDK Setup](#jdk-setup)
 - [Postman](#postman)
@@ -16,12 +17,25 @@
 - [Probes](#probes-actuator)
 - [Code Formatter](#code-formatter)
     - [Line Separator](#line-separator)
+- [OWASP Dependency Check](#owasp-dependency-check)
+- [Dependency Analysis](#dependency-analysis)
+- [Architecture Overview](#architecture-overview)
+    - [Module Structure & Dependencies](#module-structure--dependencies)
+    - [The Three Models: API, Domain, and Entity](#the-three-models-api-domain-and-entity)
+- [Axon Framework, CQRS & Event Sourcing](#axon-framework-cqrs--event-sourcing)
+    - [Core Concepts](#core-concepts)
+    - [How Axon Works in This Project](#how-axon-works-in-this-project)
+    - [Database Usage](#database-usage)
 
 ---
 
 ## Prerequisites
 
 Java version: `21`
+
+For Docker:
+- docker installed
+- keycloak running and available under `https://keycloak:9443/`
 
 ---
 
@@ -93,17 +107,17 @@ without cache:
   docker build --no-cache -t sky-starter:latest .
 ```
 
-Create docker network:
-
-```shell
-   docker network create sky-network
-```
-
 Run it:
 
 ```shell
-  docker run -d --name sky-starter --network sky-network -p 7979:7979 sky-starter:latest
+  docker run -d --name sky-starter -p 7777:7777 sky-starter:latest --add-host="keycloak:host-gateway"
 ```
+
+`--add-host="keycloak:host-gateway"` - flag adds an entry to the container's internal hosts file (/etc/hosts),  
+not the host machine's (Windows) hosts file. It maps the hostname keycloak to the special Docker keyword host-gateway,   
+which resolves to the host machine's IP address on the virtual Docker network (this is not 127.0.0.1).  
+This allows the container to connect to the host-run Keycloak service while still using the correct keycloak hostname for certificate validation,  
+all without using the host's (e.g., Windows) hosts file.
 
 ### JDK Setup
 
@@ -268,3 +282,166 @@ Analyze dependencies graph
 View report:
 [build-health-report.txt](./build/reports/dependency-analysis/build-health-report.txt)
 
+---
+
+## Architecture Overview
+
+This project is built upon a modern software architecture combining several powerful patterns:  
+- **Hexagonal Architecture (Ports and Adapters)**, 
+- **CQRS (Command Query Responsibility Segregation)**, 
+- **Event Sourcing**,
+- **Event-Driven Architecture**. 
+- This combination creates a system that is scalable, maintainable, and resilient.
+
+The core idea is to separate the application's business logic from external concerns like databases, user interfaces, or messaging systems.
+
+### Module Structure & Dependencies
+
+The project is structured into distinct modules, each with a clear responsibility.  
+The dependency rule is strict: dependencies only point inwards towards the `domain`.
+
+```
+[application] -> [infrastructure] 
+[infrastructure] -> [service]
+[infrastructure] -> [domain]
+[service] -> [domain]
+```
+
+*   `domain`: The heart of the application. It contains the core business logic, rules, and state.
+    *   **Aggregates**: Business objects that enforce consistency rules (e.g., `SkyAggregate`).
+    *   **Domain Events**: Represent facts or things that have happened in the past (e.g., `SkyCreatedEvent`).
+    *   **Commands & Queries**: Definitions of the operations the application can perform.
+    *   **Domain Models**: Rich business models.
+    *   **Service Interfaces**: Defines the contracts for application services.
+    *   This module has **zero** external dependencies on frameworks or infrastructure details. The inclusion of Axon annotations (`@AggregateIdentifier`, `@CommandHandler`) is a pragmatic choice, tightly coupling the aggregate to the CQRS pattern implementation provided by the framework, which is acceptable.
+
+
+* `service`: Contains the application's use cases. It orchestrates the flow of data between the outside world and the domain.
+    *   **Service**: Implementation of services to orchestrate the flow of data.
+  
+
+* `infrastructure`: Contains the implementation details and integrations with external systems.
+    *   **Projections**: Read-side models and the logic to build them (e.g., `SkyProjection`).
+    *   **Repositories**: Implementations for persisting data (e.g., `SkyMongoRepository`).
+    *   **Configuration**: Framework and technology-specific setup (e.g., Axon configuration).
+    *   **Controllers**: Exposes REST endpoints.
+    *   **DTOs (Data Transfer Objects)**: Models for API requests and responses. This layer is responsible for validating input and mapping it to application-layer Commands and Queries.
+
+
+*   `application`: The entry point of the application.
+
+### The Three Models: API, Domain, and Entity
+
+To maintain separation of concerns, we use three distinct types of models:
+
+1.  **API Models (DTOs)**: Plain data structures used in the `api` layer for requests and responses.  
+    They are tailored to the needs of the client and can include validation annotations.
+2.  **Domain Models (`Aggregate`)**: The rich business objects in the `domain` layer.  
+    They contain both state and the logic that operates on that state. They are persistence-ignorant.
+3.  **Entity Models (`@Document`)**: The persistence models in the `infrastructure` layer (e.g., `SkyEntity`).  
+    They are designed to map cleanly to a database table or collection and are used by projections.
+
+**Mappers** (`SkyPersistenceMapper`) are crucial for converting between these models,  
+ensuring that concerns from one layer (like database annotations) do not leak into another (like the domain).
+
+---
+
+## Axon Framework, CQRS & Event Sourcing
+
+This project uses the **Axon Framework** to implement CQRS and Event Sourcing.
+
+### Core Concepts
+
+*   **Command**: An object representing an intent to change the state of the system.  
+    Commands are imperative and are handled by exactly one handler.
+*   **Query**: An object representing a request for data.  
+    Queries are descriptive, do not change state, and can be handled by multiple handlers.
+*   **Aggregate**: A core domain object that encapsulates state and business logic.  
+    It processes Commands to validate them and, if successful, produces Events.  
+    Aggregate is defined in the `domain` module because it is the business logic.
+*   **Event**: A record of something that has happened in the past.  
+    Events are the single source of truth.
+*   **Projection**: A read-side model built by listening to a stream of events.  
+    The `SkyProjection` class listens for `SkyCreatedEvent`, `SkyUpdatedEvent`, etc.,  
+    and builds a stateful view (`SkyEntity`) optimized for querying.  
+    This lives in the `infrastructure` layer because it's a read-side implementation detail, dependent on a specific database (MongoDB).
+
+### How Axon Works in This Project
+
+#### Command
+1.  **Command Dispatch**: An API controller receives a request (DTO), maps it to a **Command** object, and sends it to the system using the `CommandGateway`.
+2.  **Command Handling**: The Command is routed to the appropriate **Aggregate**.  
+    The Aggregate's command handler contains the business logic to validate the command.
+3.  **Event Sourcing**: If the command is valid, the Aggregate applies one or more **Events**.  
+    It does not change its state directly. Instead, it has a separate event sourcing handler (e.g., a method annotated with `@EventSourcingHandler`) that applies the event to its state. Axon then persists this event in the **Event Store**.
+4.  **No Infrastructure Adapter for Aggregates**: There is no need for a custom repository or adapter in the `infrastructure` layer for our aggregates.  
+    Axon's `EventSourcingRepository` (which is configured automatically) takes care of this. It knows how to save an aggregate by appending its new events to the Event Store and how to load an aggregate by replaying its entire event history.
+5.  **Event Handling (Projections)**: The event is published on an event bus. **Projections** (`SkyProjection`) and other event handlers listen for these events.
+6.  **Building the Read Model**: The `SkyProjection` receives the event in its `@EventHandler` method and updates its own data store (MongoDB) to reflect the change.  
+    This creates a denormalized, query-optimized view of the data.
+
+#### Query
+1. **Query Dispatch**: When a client requests data, the API controller sends a **Query** object via the `QueryGateway`.
+2. **Query Handling**: The Query is routed to the `SkyProjection`'s `@QueryHandler` method, which fetches the data directly from its fast, optimized MongoDB collection and returns it.
+
+### Database Usage
+
+This architecture uses two distinct types of databases for different purposes:
+
+1.  **Event Store (Write Database)**:
+    * **Purpose**: Stores the immutable, append-only log of all domain events. This is the single source of truth for the application's state.
+    *   **Technology**: PostgreSQL, as configured in `application.yaml`. Axon creates and manages its own tables:
+        *   `domain_event_entry`: The main table storing the serialized events, aggregate identifier, sequence number, and metadata.
+        *   `snapshot_event_entry`: Stores periodic snapshots of aggregates to speed up loading (avoids replaying thousands of events).
+        *   `token_entry`: Used by event processors (like our projection) to track which events they have already handled. This allows them to resume after a shutdown.
+    *   **Justification**: Leverages existing infrastructure, mature operational tooling, and cost-efficiency of managed cloud services.
+        Using `EventStoreDB` (which works similar to Axon server event store part) will be much more costly but resolve a pulling problem.
+    *   **Known Trade-off**: This stack uses a "pull" model. Event Processors poll the JDBC store.
+
+2. **Query/Read Database**:
+    *   **Purpose**: Stores the denormalized, projected read models. It is optimized for fast queries.
+    *   **Technology**: In this project, **MongoDB** is used.  
+        The `SkyProjection` writes to a `skyProjections` collection (as defined in `SkyEntity`).
+    *   **Justification**: Provides a high-performance, schema-flexible document store, ideal for persisting and querying denormalized read-side projections.
+
+### Message Bus
+
+There are two popular options for inter-services communication with Axon:
+* Kafka
+* Axon Server
+
+Axon Server provides an excellent all-in-one solution (a "push"-based gRPC event store and a command/event bus).  
+Its main advantage is that it only requires `axon-server-connector` dependency.  
+Axon Framework finds it and automatically configures the Event Store, Command Bus, Event Bus, and Query Bus to use Axon Server
+
+**Asynchronous API Design** 
+Controllers are designed to be fully asynchronous, returning an HTTP 202 Accepted immediately after firing a command.   
+This means Axon Server's biggest feature—automating the complex request-reply logic for commands—provides no benefit to here.
+
+**Unavoidable Rehydration** 
+Axon Server's "intelligent" load balancing (sticky routing) provides a minor optimization by routing commands to pods that might have an aggregate in their in-memory cache.  
+For the vast majority of our use cases (especially Sagas and "cold" aggregates), rehydration from the database is unavoidable anyway.  
+The performance benefit is therefore minimal.
+
+**Required Kafka Configuration**
+- **Manual Topic Setup**  
+  Kafka topics need to be provisioned and managed for both Commands and Events.
+
+- **Command Routing**  
+  Aggregate services must be configured as Kafka consumers in the same `group.id` to ensure each command is processed by only one instance.
+
+- **Event Publishing**  
+  Services must be configured to publish all events to the shared event topic, which Sagas and Projections consume.
+
+---
+
+#### Localhost certificates generation
+
+Generate a self-signed certificate using openssl and `localhost.cnf`  
+Terminal in PharmacyCloud project root:
+   ```shell
+      openssl req -x509 -nodes -days 3650 -key ./certificates/localhost/localhostDomain.key -out ./certificates/localhost/localhostDomain.crt -config ./certificates/localhost/localhost.cnf -extensions req_ext
+   ```
+In file `localhost.cnf` all required information for certificate generation
+
+`localhostDomain.crt  localhostDomain.key` files should be created

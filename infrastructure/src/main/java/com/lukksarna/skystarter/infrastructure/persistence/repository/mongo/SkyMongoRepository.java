@@ -1,4 +1,4 @@
-package com.lukksarna.skystarter.infrastructure.persistence.repository;
+package com.lukksarna.skystarter.infrastructure.persistence.repository.mongo;
 
 import com.lukksarna.skystarter.infrastructure.persistence.entity.SkyEntity;
 import org.springframework.data.mongodb.repository.MongoRepository;
