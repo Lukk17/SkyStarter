@@ -110,10 +110,10 @@ without cache:
 Run it:
 
 ```shell
-  docker run -d --name sky-starter -p 7777:7777 sky-starter:latest --add-host="keycloak:host-gateway"
+  docker run -d --name sky-starter -p 7777:7777 sky-starter:latest --add-host="keycloak.test:host-gateway"
 ```
 
-`--add-host="keycloak:host-gateway"` - flag adds an entry to the container's internal hosts file (/etc/hosts),  
+`--add-host="keycloak.test:host-gateway"` - flag adds an entry to the container's internal hosts file (/etc/hosts),  
 not the host machine's (Windows) hosts file. It maps the hostname keycloak to the special Docker keyword host-gateway,   
 which resolves to the host machine's IP address on the virtual Docker network (this is not 127.0.0.1).  
 This allows the container to connect to the host-run Keycloak service while still using the correct keycloak hostname for certificate validation,  
