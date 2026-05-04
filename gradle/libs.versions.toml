@@ -51,6 +51,7 @@ springdoc-openapi-starter = { module = "org.springdoc:springdoc-openapi-starter-
 spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
 
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 
 postgres = { module = "org.postgresql:postgresql", version.ref = "postgres" }
@@ -64,6 +65,7 @@ mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.re
 lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-binding", version.ref = "lombokMapstructBinding" }
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
 mockito-core = { module = "org.mockito:mockito-core" }
 testcontainers-junit = { module = "org.testcontainers:junit-jupiter" }
 testcontainers-postgres = { module = "org.testcontainers:postgresql" }
@@ -74,10 +76,11 @@ axon-eventsourcing = { module = "org.axonframework:axon-eventsourcing", version.
 axon-test = { module = "org.axonframework:axon-test", version.ref = "axon" }
 
 [bundles]
-testing-base = ["junit-jupiter", "mockito-core"]
+testing-base = ["junit-jupiter", "mockito-core", "junit-platform-launcher"]
 spring-testing = [
     "spring-boot-starter-test",
     "spring-boot-testcontainers",
     "testcontainers-junit",
-    "testcontainers-postgres"
+    "testcontainers-postgres",
+    "spring-security-test"
 ]

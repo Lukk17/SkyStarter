@@ -26,6 +26,13 @@
     - [Core Concepts](#core-concepts)
     - [How Axon Works in This Project](#how-axon-works-in-this-project)
     - [Database Usage](#database-usage)
+- [AI Agents](#ai-agents)
+
+---
+
+## AI Agents
+
+For instructions on how to use AI coding agents (Claude Code, Kilo Code, OpenCode, Codex CLI) with this project — including skills, the OpenSpec workflow, and tooling setup — see [`docs/AGENT_TOOLING.md`](docs/AGENT_TOOLING.md). Shared agent instructions live in the root [`AGENTS.md`](AGENTS.md).
 
 ---
 
