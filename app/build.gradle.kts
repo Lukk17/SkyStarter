@@ -16,6 +16,8 @@ dependencies {
     developmentOnly(libs.spring.boot.devtools)
 
     testImplementation(libs.bundles.spring.testing)
+    testImplementation(libs.spring.boot.starter.web)
+    testImplementation(libs.spring.boot.starter.oauth2.resourceserver)
 }
 
 tasks.named<BootJar>("bootJar") {

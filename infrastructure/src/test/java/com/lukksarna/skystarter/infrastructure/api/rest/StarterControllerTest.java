@@ -1,177 +1,168 @@
 package com.lukksarna.skystarter.infrastructure.api.rest;
 
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doThrow;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import tools.jackson.databind.ObjectMapper;
+import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
+import com.lukksarna.skystarter.domain.model.Sky;
+import com.lukksarna.skystarter.domain.port.SkyCommandService;
+import com.lukksarna.skystarter.domain.port.SkyQueryService;
+import com.lukksarna.skystarter.infrastructure.api.exception.GlobalExceptionHandler;
+import com.lukksarna.skystarter.infrastructure.api.rest.dto.response.SkyResponse;
+import com.lukksarna.skystarter.infrastructure.mapper.SkyApiMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.test.context.EmbeddedKafka;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 @ExtendWith(MockitoExtension.class)
-public class StarterControllerTest {
+class StarterControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Mock
+    private SkyCommandService commandService;
+    @Mock
+    private SkyQueryService queryService;
+    @Mock
+    private SkyApiMapper apiMapper;
 
-    // We are using mockBean for the services to simulate different behaviors.
-
-    @MockBean(name = "skyCommandService")
-    private SkyCommandService skyCommandService;
-
-    @MockBean(name = "skyQueryService")
-    private SkyQueryService skyQueryService;
-    
-    // CreateSkyRequest test data
-    private static final String CREATE_SKY_REQUEST_JSON = "{\"name\":\"Test Sky\"}";
-    
-    // UpdateSkyRequest test data
-    private static final UUID UPDATE_SKY_ID = UUID.randomUUID();
-    private static final String UPDATE_SKY_NAME = "Updated Name";
-    private static final String UPDATE_SKY_REQUEST_JSON = "{\"name\":\"" + UPDATE_SKY_NAME + "\"}";
+    private MockMvc mvc;
+    private final ObjectMapper json = new ObjectMapper();
 
     @BeforeEach
-    public void setUp() {
-        // We can inject the controller if needed, but with MockMvc and Mockito we don't need to.
+    void setUp() {
+        StarterController controller = new StarterController(commandService, queryService, apiMapper);
+        mvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
-    // Test for createSky success case
-
     @Test
-    void testCreateSky_Success() throws Exception {
-        UUID expectedId = UUID.randomUUID();
-        
-        when(skyCommandService.createSky(anyString())).thenReturn(CompletableFuture.completedFuture(expectedId));
-        
-        mockMvc.perform(post("/v1/starter")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(CREATE_SKY_REQUEST_JSON))
+    void createSky_success_returns201WithBody() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(commandService.createSky(eq("Orion")))
+                .thenReturn(CompletableFuture.completedFuture(id));
+
+        MvcResult async = mvc.perform(post("/v1/starter")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Orion\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvc.perform(asyncDispatch(async))
                 .andExpect(status().isCreated())
-                .andExpect(content().string(objectMapper.writeValueAsString(expectedId)));
+                .andExpect(content().string("\"" + id + "\""));
     }
 
-    // Test for createSky with invalid name (validation error)
-
     @Test
-    void testCreateSky_ValidationError() throws Exception {
-        String json = "{\"name\":null}";
-
-        doThrow(new IllegalArgumentException("Wrong request parameter.")).when(skyCommandService).createSky(anyString());
-        
-        mockMvc.perform(post("/v1/starter")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
+    void createSky_blankName_returns400Validation() throws Exception {
+        mvc.perform(post("/v1/starter")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\" \"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorType").value(equalTo("API Illegal argument")))
-                .andExpect(jsonPath("$.message").value(equalTo("Wrong request parameter.")));
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.details.name").exists());
     }
 
-    // Test for createSky with database error (internal server)
-
     @Test
-    void testCreateSky_InternalServerError() throws Exception {
-        doThrow(new RuntimeException("Database error")).when(skyCommandService).createSky(anyString());
-        
-        mockMvc.perform(post("/v1/starter")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(CREATE_SKY_REQUEST_JSON))
-                .andExpect(status().is500Internal())
-                .andExpect(jsonPath("$.errorType").value(equalTo("INTERNAL_ERROR")))
-                .andExpect(jsonPath("$.message").value(equalTo("Something went wrong")));
-    }
+    void getSky_success_returnsResponse() throws Exception {
+        UUID id = UUID.randomUUID();
+        Sky sky = new Sky(id, "Orion", "CREATED");
+        SkyResponse response = new SkyResponse(id, "Orion", "CREATED");
+        when(queryService.findById(id)).thenReturn(CompletableFuture.completedFuture(sky));
+        when(apiMapper.domainToApiResponse(sky)).thenReturn(response);
 
-    // Test for getSky success case
+        MvcResult async = mvc.perform(get("/v1/starter/" + id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
 
-    @Test
-    void testGetSky_Success() throws Exception {
-        UUID skyId = UUID.randomUUID();
-        
-        SkyResponse response = new SkyResponse(skyId, "Test Sky", "CREATED");
-        String json = objectMapper.writeValueAsString(response);
-        
-        when(skyQueryService.findById(any())).thenReturn(CompletableFuture.completedFuture(new Sky()));
-        
-        mockMvc.perform(get("/v1/starter/" + skyId.toString()))
+        mvc.perform(asyncDispatch(async))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.name").exists());
+                .andExpect(jsonPath("$.skyId").value(id.toString()))
+                .andExpect(jsonPath("$.name").value("Orion"))
+                .andExpect(jsonPath("$.status").value("CREATED"));
     }
 
-    // Test for getSky with not found (404)
-
     @Test
-    void testGetSky_NotFound() throws Exception {
-        UUID skyId = UUID.randomUUID();
-        
-        when(skyQueryService.findById(any())).thenReturn(CompletableFuture.failedFuture(new NoResourceFoundException("Sky not found")));
-        
-        mockMvc.perform(get("/v1/starter/" + skyId.toString()))
+    void getSky_notFound_returns404() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(queryService.findById(id))
+                .thenReturn(CompletableFuture.failedFuture(new SkyNotFoundException(id)));
+
+        MvcResult async = mvc.perform(get("/v1/starter/" + id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvc.perform(asyncDispatch(async))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.errorType").value(equalTo("API Illegal argument")))
-                .andExpect(jsonPath("$.message").value(equalTo("Wrong request parameter.")));
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
-
-    // Test for updateSky success
 
     @Test
-    void testUpdateSky_Success() throws Exception {
-        when(skyCommandService.updateSky(any(), anyString())).thenReturn(CompletableFuture.completedFuture(null));
-        
-        mockMvc.perform(post("/v1/starter/" + UPDATE_SKY_ID.toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(UPDATE_SKY_REQUEST_JSON))
-                .andExpect(status().isOk());
-    }
+    void updateSky_success() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(commandService.updateSky(eq(id), anyString()))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
-    // Test for updateSky with validation error
+        MvcResult async = mvc.perform(put("/v1/starter/" + id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Orion-2\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvc.perform(asyncDispatch(async)).andExpect(status().isOk());
+    }
 
     @Test
-    void testUpdateSky_ValidationError() throws Exception {
-        String json = "{\"name\":null}";
+    void deleteSky_success() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(commandService.deleteSky(id))
+                .thenReturn(CompletableFuture.completedFuture(null));
 
-        doThrow(new IllegalArgumentException("Wrong request parameter.")).when(skyCommandService).updateSky(any(), anyString());
-        
-        mockMvc.perform(post("/v1/starter/" + UPDATE_SKY_ID.toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorType").value(equalTo("API Illegal argument")))
-                .andExpect(jsonPath("$.message").value(equalTo("Wrong request parameter.")));
+        MvcResult async = mvc.perform(delete("/v1/starter/" + id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvc.perform(asyncDispatch(async)).andExpect(status().isOk());
     }
-
-    // Test for updateSky with internal server error
 
     @Test
-    void testUpdateSky_InternalServerError() throws Exception {
-        doThrow(new RuntimeException("Database error")).when(skyCommandService).updateSky(any(), anyString());
-        
-        mockMvc.perform(post("/v1/starter/" + UPDATE_SKY_ID.toString())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(UPDATE_SKY_REQUEST_JSON))
-                .andExpect(status().is500Internal())
-                .andExpect(jsonPath("$.errorType").value(equalTo("INTERNAL_ERROR")))
-                .andExpect(jsonPath("$.message").value(equalTo("Something went wrong")));
+    void createSky_internalError_returns500() throws Exception {
+        when(commandService.createSky(anyString()))
+                .thenReturn(CompletableFuture.failedFuture(new RuntimeException("boom")));
+
+        MvcResult async = mvc.perform(post("/v1/starter")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Orion\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvc.perform(asyncDispatch(async))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"));
     }
 
+    private static org.springframework.test.web.servlet.RequestBuilder asyncDispatch(MvcResult result) {
+        return org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .asyncDispatch(result);
+    }
 }

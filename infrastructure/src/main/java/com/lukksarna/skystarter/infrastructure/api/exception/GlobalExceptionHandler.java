@@ -1,5 +1,6 @@
 package com.lukksarna.skystarter.infrastructure.api.exception;
 
+import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.Map;
+import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -17,52 +19,51 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleApiArgumentNotValidException(MethodArgumentNotValidException ex) {
-        log.error("API request body not valid: {}", ex.getMessage());
+        log.warn("API request body not valid: {}", ex.getMessage());
 
         Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage));
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                "API",
-                errors
-        );
+        return ResponseEntity.badRequest().body(new ErrorResponse("VALIDATION_ERROR", errors));
+    }
 
-        return ResponseEntity.badRequest().body(errorResponse);
+    @ExceptionHandler(SkyNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(SkyNotFoundException ex) {
+        log.info("Resource not found: {}", ex.getMessage());
+        return ResponseEntity.status(404).body(new ErrorResponse("NOT_FOUND", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.error("API illegal argument: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                "API Illegal argument",
-                "Wrong request parameter."
-        );
-
-        return ResponseEntity.badRequest().body(errorResponse);
+        log.warn("API illegal argument: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(new ErrorResponse("BAD_REQUEST", ex.getMessage()));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
-        log.error("There is no resource under specified path: {}", ex.getMessage());
+        log.info("No resource at path: {}", ex.getMessage());
+        return ResponseEntity.status(404)
+                .body(new ErrorResponse("NOT_FOUND", "There is no resource under specified path."));
+    }
 
-        ErrorResponse errorResponse = new ErrorResponse(
-                "Wrong endpoint",
-                "There is no resource under specified path."
-        );
-
-        return ResponseEntity.badRequest().body(errorResponse);
+    @ExceptionHandler(CompletionException.class)
+    public ResponseEntity<ErrorResponse> handleCompletion(CompletionException ex) {
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        if (cause instanceof SkyNotFoundException notFound) {
+            return handleNotFound(notFound);
+        }
+        if (cause instanceof IllegalArgumentException illegal) {
+            return handleIllegalArgumentException(illegal);
+        }
+        log.error("Unexpected async error", cause);
+        return ResponseEntity.internalServerError()
+                .body(new ErrorResponse("INTERNAL_ERROR", "Something went wrong"));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception ex) {
-        log.error("Unexpected error: {}", ex.getMessage());
-
-        ErrorResponse errorResponse = new ErrorResponse(
-                "INTERNAL_ERROR",
-                "Something went wrong"
-        );
-
-        return ResponseEntity.internalServerError().body(errorResponse);
+        log.error("Unexpected error", ex);
+        return ResponseEntity.internalServerError()
+                .body(new ErrorResponse("INTERNAL_ERROR", "Something went wrong"));
     }
 }

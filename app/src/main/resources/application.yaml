@@ -15,7 +15,9 @@ spring:
     # disable database connection keeping for entire web request
     open-in-view: false
     hibernate:
-      ddl-auto: update
+      # Liquibase owns schema mutations. Hibernate only validates that the
+      # runtime entity model matches the live schema. Anything else fails fast.
+      ddl-auto: validate
     database-platform: com.lukksarna.skystarter.infrastructure.config.persistence.ByteaEnforcedPostgresSQLDialect
     properties:
       hibernate:
@@ -36,6 +38,10 @@ spring:
         jwt:
           issuer-uri: "https://keycloak.test:9443/realms/local"
           jwk-set-uri: "https://keycloak.test:9443/realms/local/protocol/openid-connect/certs"
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
 
   threads:
     virtual:

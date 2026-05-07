@@ -4,7 +4,7 @@ ARG HOME=/home/app
 ARG STOREPASS=changeit
 
 # Stage 1: Build Stage
-FROM eclipse-temurin:21-jdk AS builder
+FROM eclipse-temurin:25-jdk AS builder
 
 ARG APP_NAME
 ARG HOME
@@ -35,7 +35,7 @@ WORKDIR $HOME/$APP_NAME
 RUN ./gradlew app:bootJar --no-daemon --stacktrace
 
 # Stage 2: Runtime Stage
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:25-jre-alpine AS runtime
 
 ARG APP_NAME
 ARG HOME

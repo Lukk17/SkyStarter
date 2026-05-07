@@ -30,6 +30,23 @@
 
 ---
 
+## Database migrations
+
+Schema changes go through Liquibase. To add one:
+
+1. Copy the highest-numbered changeset under `infrastructure/src/main/resources/db/changelog/` to a new file `NNNN-<short-slug>.yaml` (next sequential 4-digit number).
+2. Edit the new file with the change (`addColumn`, `createTable`, etc. — see Liquibase YAML reference).
+3. Add `- include: { file: db/changelog/NNNN-<short-slug>.yaml, relativeToChangelogFile: false }` to `db.changelog-master.yaml`.
+4. Validate locally:
+   ```shell
+   ./gradlew :infrastructure:liquibaseValidate \
+     -Pliquibase.url=jdbc:postgresql://localhost:5432/starter \
+     -Pliquibase.username=postgres -Pliquibase.password=local
+   ```
+5. Run the integration test (`./gradlew :app:test`) to confirm the changelog applies cleanly to a fresh PostgreSQL Testcontainer and that Hibernate `validate` is happy.
+
+`spring.jpa.hibernate.ddl-auto` is fixed at `validate` in every profile — Liquibase is the only path to schema change. The build also enforces this: `verifyMigrationCoverage` fails CI if a JPA `@Entity` class changes without a corresponding new changelog file. For non-persistent entity changes (refactor, `@Transient` field), include `[no-migration]` in the commit message.
+
 ## AI Agents
 
 For instructions on how to use AI coding agents (Claude Code, Kilo Code, OpenCode, Codex CLI) with this project — including skills, the OpenSpec workflow, and tooling setup — see [`docs/AGENT_TOOLING.md`](docs/AGENT_TOOLING.md). Shared agent instructions live in the root [`AGENTS.md`](AGENTS.md).
@@ -38,7 +55,7 @@ For instructions on how to use AI coding agents (Claude Code, Kilo Code, OpenCod
 
 ## Prerequisites
 
-Java version: `21`
+Java version: `25`
 
 For Docker:
 - docker installed

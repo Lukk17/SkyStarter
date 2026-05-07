@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0001-axon-event-store-baseline
+      author: maintainer
+      comment: >
+        Captures Axon Framework 4.9.x JPA event-store schema as the migration
+        baseline. Skipped on legacy databases (where the tables already exist)
+        via the precondition with onFail=MARK_RAN, so existing dev environments
+        that previously ran with ddl-auto=update keep working without data loss.
+      preConditions:
+        - onFail: MARK_RAN
+        - onFailMessage: >-
+            Axon event-store tables already exist (likely a legacy database created
+            under ddl-auto=update). Marking the baseline as already applied.
+        - not:
+            - tableExists:
+                tableName: domain_event_entry
+      changes:
+        - sqlFile:
+            path: db/changelog/0001-axon-event-store-baseline.sql
+            relativeToChangelogFile: false
+            splitStatements: true
+            stripComments: true
+            encoding: UTF-8
+      rollback:
+        - sql:
+            sql: SELECT 1 -- baseline is intentionally non-rollback-able; revert by dropping the database

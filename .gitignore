@@ -36,3 +36,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Per-machine agent permission grants (do not commit)
+.claude/settings.local.json

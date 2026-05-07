@@ -3,6 +3,7 @@ package com.lukksarna.skystarter.infrastructure.persistence.adapter;
 import com.lukksarna.skystarter.domain.event.SkyCreatedEvent;
 import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
+import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import com.lukksarna.skystarter.domain.model.Sky;
 import com.lukksarna.skystarter.domain.query.FindSkyByIdQuery;
 import com.lukksarna.skystarter.infrastructure.mapper.SkyPersistenceMapper;
@@ -29,7 +30,7 @@ public class SkyProjection {
         Optional<SkyEntity> entityOptional = skyRepository.findById(query.getSkyId());
 
         SkyEntity entity = entityOptional.orElseThrow(
-                () -> new IllegalArgumentException("Starter not found with id: " + query.getSkyId())
+                () -> new SkyNotFoundException(query.getSkyId())
         );
         return skyPersistenceMapper.entityToDomain(entity);
     }

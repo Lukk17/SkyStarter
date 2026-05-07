@@ -1,10 +1,43 @@
-#spring:
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          issuer-uri: http://localhost:8080/realms/test
-#          jwk-set-uri: http://localhost:8080/realms/test/protocol/openid_connect/certs
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.oauth2.resource.reactive.ReactiveOAuth2ResourceServerAutoConfiguration
+  jpa:
+    hibernate:
+      # Liquibase manages the schema; Hibernate only validates.
+      ddl-auto: validate
+    database-platform: com.lukksarna.skystarter.infrastructure.config.persistence.ByteaEnforcedPostgresSQLDialect
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        boot:
+          allow_jdbc_metadata_access: false
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+  threads:
+    virtual:
+      enabled: true
+
+axon:
+  axonserver:
+    enabled: false
+  serializer:
+    events: jackson
+    messages: jackson
+    general: jackson
+  eventhandling:
+    processors:
+      "sky-projection-processor":
+        mode: tracking
+        initial-segment-count: 1
+  snapshot:
+    trigger:
+      threshold: 5
 
 management:
   endpoints:

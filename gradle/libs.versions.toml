@@ -1,43 +1,67 @@
 [versions]
-# https://plugins.gradle.org/plugin/org.springframework.boot
-springBoot = "3.5.7"
+# https://mvnrepository.com/artifact/org.springframework.boot/spring-boot/versions
+springBoot = "4.0.6"
 # https://plugins.gradle.org/plugin/io.spring.dependency-management
 springDependencyManagement = "1.1.7"
-# https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui
-springDocOpenApi = "2.8.13"
+# https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui/versions
+springdoc = "3.0.3"
 # https://plugins.gradle.org/plugin/org.springdoc.openapi-gradle-plugin
-springdocOpenApiPlugin = "1.9.0"
-# https://mvnrepository.com/artifact/org.postgresql/postgresql
-postgres = "42.7.8"
+springdocPlugin = "1.9.0"
 
-# https://mvnrepository.com/artifact/org.mapstruct/mapstruct
+# https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-dependencies/versions
+springCloud = "2025.1.1"
+# https://mvnrepository.com/artifact/org.springframework.modulith/spring-modulith-bom/versions
+springModulith = "2.0.6"
+
+# https://mvnrepository.com/artifact/com.tngtech.archunit/archunit-junit5/versions  (no BOM)
+archunit = "1.4.0"
+
+# https://mvnrepository.com/artifact/org.mapstruct/mapstruct  (no BOM)
 mapstruct = "1.6.3"
-# https://mvnrepository.com/artifact/org.projectlombok/lombok-mapstruct-binding
+# https://mvnrepository.com/artifact/org.projectlombok/lombok-mapstruct-binding  (no BOM)
 lombokMapstructBinding = "0.2.0"
-# https://mvnrepository.com/artifact/com.google.code.gson/gson
-gson = "2.13.2"
 
 # https://mvnrepository.com/artifact/org.sonarqube/org.sonarqube.gradle.plugin
 sonarqube = "6.3.1.5724"
 # https://plugins.gradle.org/plugin/org.owasp.dependencycheck
-owaspDependencyCheck = "12.1.8"
+owaspDependencyCheck = "12.2.0"
 # https://plugins.gradle.org/plugin/com.autonomousapps.dependency-analysis
-dependencyAnalysis = "3.4.1"
+dependencyAnalysis = "3.6.1"
 # https://plugins.gradle.org/plugin/com.diffplug.spotless
 spotless = "8.0.0"
-axon = "4.9.3"
+# https://plugins.gradle.org/plugin/org.liquibase.gradle
+liquibaseGradle = "2.2.2"
+
+# Platform BOMs.
+# https://mvnrepository.com/artifact/org.testcontainers/testcontainers-bom/versions
+# Keep in sync with the Spring Boot dependencies BOM's testcontainers.version property.
+testcontainers = "2.0.5"
+# https://mvnrepository.com/artifact/org.axonframework/axon-bom
+# Held at 4.9.x pending the dedicated `upgrade-axon-5` OpenSpec change.
+# Axon 5.1.0 ships under `org.axonframework:axon-framework-bom` (renamed)
+# and moves the Spring Boot starter to `org.axonframework.extensions.spring`.
+axonBom = "4.9.3"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
-springdoc-openapi = { id = "org.springdoc.openapi-gradle-plugin", version.ref = "springdocOpenApiPlugin" }
+springdoc-openapi = { id = "org.springdoc.openapi-gradle-plugin", version.ref = "springdocPlugin" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 
 owasp-dependency-check = { id = "org.owasp.dependencycheck", version.ref = "owaspDependencyCheck" }
 dependency-analysis = { id = "com.autonomousapps.dependency-analysis", version.ref = "dependencyAnalysis" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+liquibase-gradle = { id = "org.liquibase.gradle", version.ref = "liquibaseGradle" }
 
 [libraries]
+# Platform BOMs (imported via `platform(...)` in module build scripts)
+spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+spring-cloud-bom = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "springCloud" }
+spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }
+testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
+axon-bom = { module = "org.axonframework:axon-bom", version.ref = "axonBom" }
+
+# Spring Boot–managed (versions resolved from spring-boot-bom)
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
@@ -46,19 +70,27 @@ spring-boot-starter-oauth2-resourceserver = { module = "org.springframework.boot
 spring-boot-starter-data-jpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
 spring-boot-starter-data-mongodb = { module = "org.springframework.boot:spring-boot-starter-data-mongodb" }
 
-springdoc-openapi-starter = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springDocOpenApi" }
+springdoc-openapi-starter = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 
 spring-boot-devtools = { module = "org.springframework.boot:spring-boot-devtools" }
 
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test" }
+spring-boot-starter-jackson-test = { module = "org.springframework.boot:spring-boot-starter-jackson-test" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
 spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
 
-postgres = { module = "org.postgresql:postgresql", version.ref = "postgres" }
+postgres = { module = "org.postgresql:postgresql" }
+
+# Liquibase — managed by spring-boot-bom.
+# Boot 4 split Liquibase autoconfig into its own starter; pulling -core alone
+# does not wire LiquibaseAutoConfiguration onto the classpath.
+spring-boot-starter-liquibase = { module = "org.springframework.boot:spring-boot-starter-liquibase" }
+liquibase-core = { module = "org.liquibase:liquibase-core" }
 
 lombok = { module = "org.projectlombok:lombok" }
 slf4j = { module = "org.slf4j:slf4j-api" }
-gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+gson = { module = "com.google.code.gson:gson" }
 
 mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
 mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }
@@ -67,20 +99,36 @@ lombok-mapstruct-binding = { module = "org.projectlombok:lombok-mapstruct-bindin
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { group = "org.junit.platform", name = "junit-platform-launcher" }
 mockito-core = { module = "org.mockito:mockito-core" }
-testcontainers-junit = { module = "org.testcontainers:junit-jupiter" }
-testcontainers-postgres = { module = "org.testcontainers:postgresql" }
+mockito-junit = { module = "org.mockito:mockito-junit-jupiter" }
+assertj-core = { module = "org.assertj:assertj-core" }
+hamcrest = { module = "org.hamcrest:hamcrest" }
 
-axon-spring-boot-starter = { module = "org.axonframework:axon-spring-boot-starter", version.ref = "axon" }
-axon-modelling = { module = "org.axonframework:axon-modelling", version.ref = "axon" }
-axon-eventsourcing = { module = "org.axonframework:axon-eventsourcing", version.ref = "axon" }
-axon-test = { module = "org.axonframework:axon-test", version.ref = "axon" }
+# ArchUnit — for architecture tests (e.g. enforcing the hexagonal dependency rule).
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+
+# Testcontainers — managed by testcontainers-bom (2.x renamed all modules `testcontainers-<name>`)
+testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }
+testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql" }
+testcontainers-mongodb = { module = "org.testcontainers:testcontainers-mongodb" }
+
+awaitility = { module = "org.awaitility:awaitility" }
+
+# Axon — managed by axon-bom
+axon-spring-boot-starter = { module = "org.axonframework:axon-spring-boot-starter" }
+axon-modelling = { module = "org.axonframework:axon-modelling" }
+axon-eventsourcing = { module = "org.axonframework:axon-eventsourcing" }
+axon-test = { module = "org.axonframework:axon-test" }
 
 [bundles]
-testing-base = ["junit-jupiter", "mockito-core", "junit-platform-launcher"]
+testing-base = ["junit-jupiter", "mockito-core", "mockito-junit", "assertj-core", "hamcrest", "junit-platform-launcher"]
 spring-testing = [
     "spring-boot-starter-test",
+    "spring-boot-starter-webmvc-test",
+    "spring-boot-starter-jackson-test",
     "spring-boot-testcontainers",
     "testcontainers-junit",
     "testcontainers-postgres",
-    "spring-security-test"
+    "testcontainers-mongodb",
+    "spring-security-test",
+    "awaitility"
 ]

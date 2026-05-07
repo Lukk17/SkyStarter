@@ -24,7 +24,7 @@ Add the read-only remote and extract the standards:
 git remote add agent-standards https://github.com/Lukk17/agent-standards
 git remote set-url --push agent-standards no_push
 git fetch agent-standards
-git checkout agent-standards/master -- .agents .claude .kilocode .opencode .codex AGENTS.md kilo.jsonc.example opencode.json.example
+git checkout agent-standards/master -- .agents .claude .kilocode .opencode .codex AGENTS.md.example kilo.jsonc.example opencode.json.example
 git commit -m "Import central agent-standards (.agents and .claude)"
 ```
 

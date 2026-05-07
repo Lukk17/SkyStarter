@@ -10,8 +10,10 @@ import com.lukksarna.skystarter.infrastructure.config.api.inbound.ApiCommonSucce
 import com.lukksarna.skystarter.infrastructure.mapper.SkyApiMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -53,8 +55,9 @@ public class StarterController {
     @ApiCommonErrorResponses
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PostMapping
-    public CompletableFuture<UUID> createSky(@RequestBody CreateSkyRequest request) {
-        return skyCommandService.createSky(request.getName());
+    public CompletableFuture<ResponseEntity<UUID>> createSky(@Valid @RequestBody CreateSkyRequest request) {
+        return skyCommandService.createSky(request.getName())
+                .thenApply(id -> ResponseEntity.status(HttpStatus.CREATED).body(id));
     }
 
     @Operation(
@@ -65,7 +68,7 @@ public class StarterController {
     @ApiCommonErrorResponses
     @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     @PutMapping("/{skyId}")
-    public CompletableFuture<Void> updateSky(@PathVariable("skyId") UUID skyId, @RequestBody UpdateSkyRequest request) {
+    public CompletableFuture<Void> updateSky(@PathVariable("skyId") UUID skyId, @Valid @RequestBody UpdateSkyRequest request) {
         return skyCommandService.updateSky(skyId, request.getName());
     }
 
