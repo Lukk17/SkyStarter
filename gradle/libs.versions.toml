@@ -1,8 +1,6 @@
 [versions]
 # https://mvnrepository.com/artifact/org.springframework.boot/spring-boot/versions
 springBoot = "4.0.6"
-# https://plugins.gradle.org/plugin/io.spring.dependency-management
-springDependencyManagement = "1.1.7"
 # https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui/versions
 springdoc = "3.0.3"
 # https://plugins.gradle.org/plugin/org.springdoc.openapi-gradle-plugin
@@ -30,7 +28,15 @@ dependencyAnalysis = "3.6.1"
 # https://plugins.gradle.org/plugin/com.diffplug.spotless
 spotless = "8.0.0"
 # https://plugins.gradle.org/plugin/org.liquibase.gradle
-liquibaseGradle = "2.2.2"
+# Plugin 3.x is the modern maintained line; we'd prefer it eliminate the
+# `Project.container(Class, Closure)` Gradle-10 deprecation, but the upstream
+# fix is still pending (https://github.com/liquibase/liquibase-gradle-plugin/issues/181).
+# Stay on 3.x so we land that fix automatically when it ships.
+liquibaseGradle = "3.1.0"
+# Liquibase core version pinned for the Gradle plugin's buildscript classpath.
+# 3.x requires liquibase-core to be visible at plugin-apply time. Kept in sync
+# with the version Spring Boot's BOM ships at runtime — bump together.
+liquibaseCore = "5.0.2"
 
 # Platform BOMs.
 # https://mvnrepository.com/artifact/org.testcontainers/testcontainers-bom/versions
@@ -48,7 +54,6 @@ axonBom = "5.1.0"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
-spring-dependency-management = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }
 springdoc-openapi = { id = "org.springdoc.openapi-gradle-plugin", version.ref = "springdocPlugin" }
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
 

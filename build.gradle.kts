@@ -1,5 +1,3 @@
-import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-
 val projectEncoding: String = "UTF-8"
 val projectJavaVersion: Int = 25
 val projectJavaVendor: JvmVendorSpec = JvmVendorSpec.ADOPTIUM
@@ -8,7 +6,6 @@ disableSpotlessAutoTasks()
 
 plugins {
     alias(libs.plugins.spring.boot) apply false
-    alias(libs.plugins.spring.dependency.management) apply false // build-logic setup it
     alias(libs.plugins.spotless) apply false // build-logic setup it
     alias(libs.plugins.sonarqube)
     alias(libs.plugins.owasp.dependency.check)
@@ -45,7 +42,6 @@ allprojects {
 subprojects {
     apply(plugin = "java")
     apply(plugin = "java-library")
-    apply(plugin = "io.spring.dependency-management")
     apply(plugin = "jacoco")
 
     group = "com.revdevs.pharmacy"
@@ -54,24 +50,40 @@ subprojects {
 
     val libs = rootProject.extensions.getByType<VersionCatalogsExtension>().named("libs")
 
-    the<DependencyManagementExtension>().apply {
-        imports {
-            mavenBom("org.springframework.boot:spring-boot-dependencies:${libs.findVersion("springBoot").get()}")
+    // BOMs are imported as Gradle `platform(...)` constraints below — no need
+    // for the legacy io.spring.dependency-management plugin. Spring Boot's
+    // Gradle plugin works with native platform imports since Boot 3.x.
+
+    // Configurations the Spring Boot Gradle plugin creates lazily (developmentOnly,
+    // testAndDevelopmentOnly) need BOM resolution too. Apply platform imports
+    // wherever the plugin happens to register them.
+    val bomConfigurations = listOf(
+        "implementation",
+        "annotationProcessor",
+        "compileOnly",
+        "runtimeOnly",
+        "testImplementation",
+        "testCompileOnly",
+        "testRuntimeOnly",
+        "developmentOnly",
+        "testAndDevelopmentOnly"
+    )
+
+    afterEvaluate {
+        bomConfigurations.forEach { configName ->
+            configurations.findByName(configName)?.let { _ ->
+                dependencies.add(configName, dependencies.platform(libs.findLibrary("spring-boot-bom").get()))
+                dependencies.add(configName, dependencies.platform(libs.findLibrary("spring-cloud-bom").get()))
+                dependencies.add(configName, dependencies.platform(libs.findLibrary("spring-modulith-bom").get()))
+                dependencies.add(configName, dependencies.platform(libs.findLibrary("axon-bom").get()))
+                if (configName.startsWith("test")) {
+                    dependencies.add(configName, dependencies.platform(libs.findLibrary("testcontainers-bom").get()))
+                }
+            }
         }
     }
 
     dependencies {
-        // Platform BOMs — version management for everything below.
-        "implementation"(platform(libs.findLibrary("spring-boot-bom").get()))
-        "implementation"(platform(libs.findLibrary("spring-cloud-bom").get()))
-        "implementation"(platform(libs.findLibrary("spring-modulith-bom").get()))
-        "implementation"(platform(libs.findLibrary("axon-bom").get()))
-        "annotationProcessor"(platform(libs.findLibrary("spring-boot-bom").get()))
-        "testImplementation"(platform(libs.findLibrary("spring-boot-bom").get()))
-        "testImplementation"(platform(libs.findLibrary("spring-cloud-bom").get()))
-        "testImplementation"(platform(libs.findLibrary("spring-modulith-bom").get()))
-        "testImplementation"(platform(libs.findLibrary("testcontainers-bom").get()))
-        "testImplementation"(platform(libs.findLibrary("axon-bom").get()))
 
         "compileOnly"(libs.findLibrary("lombok").get())
         "annotationProcessor"(libs.findLibrary("lombok").get())

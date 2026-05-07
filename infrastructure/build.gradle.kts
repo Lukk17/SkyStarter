@@ -1,3 +1,21 @@
+// Liquibase Gradle plugin 3.x requires Liquibase to be visible at plugin-apply
+// time, so we declare it on the `buildscript` classpath in addition to the
+// `liquibaseRuntime` configuration the plugin uses at task-execution time.
+// See https://github.com/liquibase/liquibase-gradle-plugin/blob/main/doc/usage.md
+buildscript {
+    val liquibaseCoreVersion: String =
+        rootProject.extensions.getByType<VersionCatalogsExtension>()
+            .named("libs")
+            .findVersion("liquibaseCore")
+            .get()
+            .requiredVersion
+
+    repositories { mavenCentral() }
+    dependencies {
+        classpath("org.liquibase:liquibase-core:$liquibaseCoreVersion")
+    }
+}
+
 plugins {
     alias(libs.plugins.liquibase.gradle)
 }
@@ -26,9 +44,8 @@ dependencies {
     runtimeOnly(libs.spring.boot.starter.liquibase)
 
     // Author-time only: lets `./gradlew :infrastructure:liquibaseUpdate` etc. run.
-    // The `liquibaseRuntime` config is plugin-created and outside the BOM-managed
-    // configurations, so we import the Spring Boot BOM here too for version
-    // resolution.
+    // `liquibaseRuntime` is plugin-created and outside the root subprojects'
+    // BOM-managed configurations, so the Spring Boot BOM is imported here too.
     "liquibaseRuntime"(platform(libs.spring.boot.bom))
     "liquibaseRuntime"(libs.liquibase.core)
     "liquibaseRuntime"(libs.postgres)
