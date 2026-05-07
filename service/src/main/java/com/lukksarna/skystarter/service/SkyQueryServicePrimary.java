@@ -4,7 +4,7 @@ import com.lukksarna.skystarter.domain.model.Sky;
 import com.lukksarna.skystarter.domain.port.SkyQueryService;
 import com.lukksarna.skystarter.domain.query.FindSkyByIdQuery;
 import lombok.RequiredArgsConstructor;
-import org.axonframework.queryhandling.QueryGateway;
+import org.axonframework.messaging.queryhandling.gateway.QueryGateway;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;

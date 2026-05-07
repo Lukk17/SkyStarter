@@ -36,11 +36,15 @@ liquibaseGradle = "2.2.2"
 # https://mvnrepository.com/artifact/org.testcontainers/testcontainers-bom/versions
 # Keep in sync with the Spring Boot dependencies BOM's testcontainers.version property.
 testcontainers = "2.0.5"
-# https://mvnrepository.com/artifact/org.axonframework/axon-bom
-# Held at 4.9.x pending the dedicated `upgrade-axon-5` OpenSpec change.
-# Axon 5.1.0 ships under `org.axonframework:axon-framework-bom` (renamed)
-# and moves the Spring Boot starter to `org.axonframework.extensions.spring`.
-axonBom = "4.9.3"
+# https://mvnrepository.com/artifact/org.axonframework/axon-framework-bom
+# Axon 5 — fundamental rewrite of the aggregate/messaging model. Entity Model
+# + @RoutingKey replaces @Aggregate + @TargetAggregateIdentifier; events are
+# returned from handlers instead of applied via AggregateLifecycle; snapshots
+# go through SnapshotPolicy + SnapshotStore. Spring Boot integration moved to
+# `org.axonframework.extensions.spring`. The 4.x line (4.9 / 4.10) has a
+# Spring Boot 4 autoconfig-ordering bug that prevents JpaEventStoreAutoConfiguration
+# from wiring; only 5.x targets Boot 4 cleanly.
+axonBom = "5.1.0"
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
@@ -59,7 +63,7 @@ spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies"
 spring-cloud-bom = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "springCloud" }
 spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
-axon-bom = { module = "org.axonframework:axon-bom", version.ref = "axonBom" }
+axon-bom = { module = "org.axonframework:axon-framework-bom", version.ref = "axonBom" }
 
 # Spring Boot–managed (versions resolved from spring-boot-bom)
 spring-boot-starter = { module = "org.springframework.boot:spring-boot-starter" }
@@ -113,8 +117,11 @@ testcontainers-mongodb = { module = "org.testcontainers:testcontainers-mongodb" 
 
 awaitility = { module = "org.awaitility:awaitility" }
 
-# Axon — managed by axon-bom
-axon-spring-boot-starter = { module = "org.axonframework:axon-spring-boot-starter" }
+# Axon — managed by axon-framework-bom (5.x; Entity Model).
+# Axon 5 split the Spring Boot integration into a separate groupId
+# `org.axonframework.extensions.spring`. Core artifacts stay under
+# `org.axonframework`.
+axon-spring-boot-starter = { module = "org.axonframework.extensions.spring:axon-spring-boot-starter" }
 axon-modelling = { module = "org.axonframework:axon-modelling" }
 axon-eventsourcing = { module = "org.axonframework:axon-eventsourcing" }
 axon-test = { module = "org.axonframework:axon-test" }

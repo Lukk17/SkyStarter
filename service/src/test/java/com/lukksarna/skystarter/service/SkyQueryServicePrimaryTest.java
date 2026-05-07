@@ -2,7 +2,7 @@ package com.lukksarna.skystarter.service;
 
 import com.lukksarna.skystarter.domain.model.Sky;
 import com.lukksarna.skystarter.domain.query.FindSkyByIdQuery;
-import org.axonframework.queryhandling.QueryGateway;
+import org.axonframework.messaging.queryhandling.gateway.QueryGateway;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;

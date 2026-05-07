@@ -2,6 +2,7 @@ package com.lukksarna.skystarter.infrastructure.api.exception;
 
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.axonframework.messaging.queryhandling.QueryExecutionException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -44,6 +45,24 @@ public class GlobalExceptionHandler {
         log.info("No resource at path: {}", ex.getMessage());
         return ResponseEntity.status(404)
                 .body(new ErrorResponse("NOT_FOUND", "There is no resource under specified path."));
+    }
+
+    /**
+     * Axon 5 wraps query-handler exceptions in {@link QueryExecutionException}.
+     * Unwrap and route to the appropriate handler.
+     */
+    @ExceptionHandler(QueryExecutionException.class)
+    public ResponseEntity<ErrorResponse> handleQueryExecutionException(QueryExecutionException ex) {
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        if (cause instanceof SkyNotFoundException notFound) {
+            return handleNotFound(notFound);
+        }
+        if (cause instanceof IllegalArgumentException illegal) {
+            return handleIllegalArgumentException(illegal);
+        }
+        log.error("Unexpected query-execution error", cause);
+        return ResponseEntity.internalServerError()
+                .body(new ErrorResponse("INTERNAL_ERROR", "Something went wrong"));
     }
 
     @ExceptionHandler(CompletionException.class)

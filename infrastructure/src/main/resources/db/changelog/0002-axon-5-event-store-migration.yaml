@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0002-axon-5-event-store-migration
+      author: maintainer
+      comment: >
+        Axon 5 event-store schema. Replaces the Axon 4 layout from 0001-axon-event-store-baseline:
+        - Single `aggregate_event_entry` table (was `domain_event_entry` + `snapshot_event_entry`).
+        - Snapshot tables removed (Axon 5 uses SnapshotStore — currently the InMemorySnapshotStore default,
+          no JPA tables required).
+        - Token / saga / dead-letter / association-value tables removed (we don't use these features;
+          if they're added back later, that's a new changeset).
+        Per ADR-0009, baseline 0001 is never edited; this changeset stacks on top.
+      preConditions:
+        - onFail: MARK_RAN
+        - onFailMessage: >-
+            aggregate_event_entry already exists (likely a database migrated to Axon 5 in a prior run).
+            Marking the migration as already applied.
+        - not:
+            - tableExists:
+                tableName: aggregate_event_entry
+      changes:
+        # Axon 5 event-store table: AggregateEventEntry (jpa).
+        # Note: Axon 5's @SequenceGenerator uses a hyphenated, quoted name —
+        # `aggregate-event-global-index-sequence` — not the conventional
+        # `<table>_seq`. Hibernate validates this exact identifier.
+        - sql:
+            sql: CREATE SEQUENCE "aggregate-event-global-index-sequence" START WITH 1 INCREMENT BY 1
+        - createTable:
+            tableName: aggregate_event_entry
+            columns:
+              - column: { name: global_index,                 type: BIGINT,        constraints: { primaryKey: true, nullable: false } }
+              - column: { name: aggregate_type,               type: VARCHAR(255) }
+              - column: { name: aggregate_identifier,         type: VARCHAR(255),  constraints: { nullable: false } }
+              - column: { name: aggregate_sequence_number,    type: BIGINT }
+              - column: { name: type,                         type: VARCHAR(255),  constraints: { nullable: false } }
+              - column: { name: version,                      type: VARCHAR(255) }
+              - column: { name: timestamp,                    type: VARCHAR(255),  constraints: { nullable: false } }
+              - column: { name: payload,                      type: BYTEA,         constraints: { nullable: false } }
+              - column: { name: metadata,                     type: BYTEA }
+              - column: { name: identifier,                   type: VARCHAR(255),  constraints: { nullable: false } }
+        - addUniqueConstraint:
+            tableName: aggregate_event_entry
+            columnNames: identifier
+            constraintName: uk_aggregate_event_entry_identifier
+        - addUniqueConstraint:
+            tableName: aggregate_event_entry
+            columnNames: aggregate_identifier, aggregate_sequence_number
+            constraintName: uk_aggregate_event_entry_aggregate_sequence
+        # Token store: Axon 5 still has token_entry, but added a `mask` column.
+        # Drop the Axon 4 table and recreate with the Axon 5 layout.
+        - dropTable: { tableName: token_entry,                cascadeConstraints: true }
+        - createTable:
+            tableName: token_entry
+            columns:
+              - column: { name: processor_name, type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: segment,        type: INTEGER,      constraints: { nullable: false } }
+              - column: { name: owner,          type: VARCHAR(255) }
+              - column: { name: timestamp,      type: VARCHAR(255), constraints: { nullable: false } }
+              - column: { name: token,          type: BYTEA }
+              - column: { name: token_type,     type: VARCHAR(255) }
+              - column: { name: mask,           type: INTEGER,      constraints: { nullable: false } }
+        - addPrimaryKey:
+            tableName: token_entry
+            columnNames: processor_name, segment
+            constraintName: pk_token_entry
+        # Drop the unused Axon 4 tables — we never wired their features
+        # (sagas, dead-letter queues, association values, snapshots).
+        - dropTable: { tableName: dead_letter_entry,          cascadeConstraints: true }
+        - dropTable: { tableName: association_value_entry,    cascadeConstraints: true }
+        - dropTable: { tableName: saga_entry,                 cascadeConstraints: true }
+        - dropTable: { tableName: snapshot_event_entry,       cascadeConstraints: true }
+        - dropTable: { tableName: domain_event_entry,         cascadeConstraints: true }
+        - dropSequence: { sequenceName: domain_event_entry_seq }
+      rollback:
+        - sql:
+            sql: SELECT 1 -- forward-only migration; rollback to Axon 4 not supported by this template

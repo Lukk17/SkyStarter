@@ -10,16 +10,18 @@ import com.lukksarna.skystarter.infrastructure.mapper.SkyPersistenceMapper;
 import com.lukksarna.skystarter.infrastructure.persistence.entity.SkyEntity;
 import com.lukksarna.skystarter.infrastructure.persistence.repository.mongo.SkyMongoRepository;
 import lombok.RequiredArgsConstructor;
-import org.axonframework.config.ProcessingGroup;
-import org.axonframework.eventhandling.EventHandler;
-import org.axonframework.queryhandling.QueryHandler;
+import org.axonframework.messaging.eventhandling.annotation.EventHandler;
+import org.axonframework.messaging.queryhandling.annotation.QueryHandler;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
+// Axon 5 dropped the @ProcessingGroup annotation; processor grouping is now
+// purely configuration-driven (see application.yaml axon.eventhandling.processors).
+// The processor name resolves from the surrounding configuration, not from
+// an annotation on this class.
 @RequiredArgsConstructor
 @Component
-@ProcessingGroup("sky-projection-processor")
 public class SkyProjection {
 
     private final SkyMongoRepository skyRepository;

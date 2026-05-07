@@ -1,8 +1,9 @@
 spring:
   autoconfigure:
     exclude:
-      - org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration
-      - org.springframework.boot.autoconfigure.security.oauth2.resource.reactive.ReactiveOAuth2ResourceServerAutoConfiguration
+      # Boot 4 moved the OAuth2 resource-server autoconfig into a dedicated module.
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.reactive.ReactiveOAuth2ResourceServerAutoConfiguration
   jpa:
     hibernate:
       # Liquibase manages the schema; Hibernate only validates.
@@ -19,6 +20,9 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     enabled: true
+  mongodb:
+    representation:
+      uuid: standard
   threads:
     virtual:
       enabled: true
@@ -33,11 +37,8 @@ axon:
   eventhandling:
     processors:
       "sky-projection-processor":
-        mode: tracking
+        mode: pooled
         initial-segment-count: 1
-  snapshot:
-    trigger:
-      threshold: 5
 
 management:
   endpoints:

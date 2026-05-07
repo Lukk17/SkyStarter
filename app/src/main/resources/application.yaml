@@ -31,6 +31,11 @@ spring:
   data:
     mongodb:
       uri: "mongodb://localhost:27017/starter"
+  # Boot 4 moved the UUID representation property out of `spring.data.mongodb`
+  # into `spring.mongodb.representation`. Standard = canonical 16-byte BSON UUID.
+  mongodb:
+    representation:
+      uuid: standard
 
   security:
     oauth2:
@@ -80,7 +85,8 @@ axon:
     processors:
       # Use name from your @ProcessingGroup annotation
       "sky-projection-processor":
-        mode: tracking # Use tracking event processor by default
+        # Axon 5 renamed TRACKING → POOLED (thread-pool-based streaming processor).
+        mode: pooled
         # Defines the number of parallel "work queues" (segments) for this processor.
         # This enables horizontal scaling. A single pod will be "greedy" and claim all 10 segments.
         # When more pods are added, the segments will automatically rebalance (e.g., 2 pods = 5 segments each).

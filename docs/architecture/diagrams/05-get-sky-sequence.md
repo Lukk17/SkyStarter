@@ -1,6 +1,6 @@
 # Get-Sky — sequence
 
-Read path. Note: served from MongoDB projection, not from event replay.
+Read path. Note: served from the MongoDB projection, not from event replay.
 
 ```mermaid
 sequenceDiagram
@@ -26,7 +26,8 @@ sequenceDiagram
     else missing
         Mongo-->>Proj: empty
         Proj-->>QryGW: throw SkyNotFoundException
+        QryGW-->>QryGW: wrap in QueryExecutionException
         QryGW-->>Ctrl: failed CompletableFuture
-        Ctrl-->>C: 404 NOT_FOUND
+        Ctrl-->>C: 404 NOT_FOUND (handler unwraps)
     end
 ```

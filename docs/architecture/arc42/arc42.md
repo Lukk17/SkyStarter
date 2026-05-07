@@ -55,7 +55,7 @@ where the trade-offs have already been made and the wiring is already done.
 |---|---|---|
 | Java 25 (Adoptium) | `build.gradle.kts` toolchain | All bytecode at JDK 25. Virtual threads enabled. Foojay resolver provisions the JDK on dev/CI machines that don't have it. |
 | Spring Boot 4.0.x | `gradle/libs.versions.toml` | Jakarta namespaces; Spring Framework 7 / Spring Security 7; Jackson 3 (`tools.jackson.*`); persistence/web/test packages reorganised. |
-| Axon Framework 4.9.x (no Axon Server) | `application.yaml` (`axon.axonserver.enabled=false`) | Event store sits on the primary JPA/PostgreSQL datasource. Resolved via `axon-bom`. |
+| Axon Framework 5.1.0 (no Axon Server) | `application.yaml` (`axon.axonserver.enabled=false`) | Event store sits on the primary JPA/PostgreSQL datasource. Resolved via `axon-framework-bom`; Spring Boot integration under groupId `org.axonframework.extensions.spring`. Entity Model — aggregate is a state class with `@EventSourced(idType, tagKey)`; command handlers external; events tagged with `@EventTag`. |
 | MongoDB for projections | `application.yaml` | Read model is a separate datastore — denormalised by intent. |
 | Keycloak as IdP | `SecurityConfig` | Realm roles in `realm_access.roles` claim. Spring Security 7 also injects a `FactorGrantedAuthority` automatically. |
 | Gradle multi-module + version catalog | `settings.gradle.kts`, `libs.versions.toml` | Dependencies declared once, used many. Versions resolved through BOMs (Spring Boot, Spring Cloud, Spring Modulith, Testcontainers, Axon) wherever possible. |
@@ -71,7 +71,7 @@ where the trade-offs have already been made and the wiring is already done.
 | Spring Security | 7.x (transitive) |
 | Spring Cloud BOM | 2025.1.1 |
 | Spring Modulith BOM | 2.0.6 |
-| Axon Framework | 4.9.3 (BOM) → artifacts 4.9.2 |
+| Axon Framework | **5.1.0** (`axon-framework-bom`); Spring Boot starter under `org.axonframework.extensions.spring` |
 | PostgreSQL | 15+ |
 | MongoDB | 7.0+ |
 | Keycloak | 26+ (any OIDC / RFC 8414–compliant IdP works) |
@@ -144,7 +144,8 @@ See [diagram: container view](../diagrams/02-container-view.md) and [diagram: mo
 
 | Element | Type | Notes |
 |---|---|---|
-| `SkyAggregate` | Axon `@Aggregate` | Handles `CreateSkyCommand`, `UpdateSkyCommand`, `DeleteSkyCommand`. Uses `SkyValidator` for invariants. Snapshot-triggered (`snapshotTriggerDefinition`). |
+| `SkyAggregate` | Axon 5 `@EventSourced(idType=UUID.class, tagKey="skyId")` | Pure state class. `@EntityCreator` no-arg constructor + `@EventSourcingHandler` methods that evolve state when prior events are replayed. Command handlers live in `SkyCommandHandlers`. Snapshots: not wired (follow-up). |
+| `SkyCommandHandlers` | `@Component` with three `@CommandHandler` methods | External command handlers (Axon 5 idiom). Each method takes the command, the loaded entity via `@InjectEntity(idProperty="skyId") SkyAggregate state`, and an `EventAppender`. Validates and emits events through the appender. |
 | `Sky` | Read-model record | DTO returned from queries. |
 | `SkyValidator` | Domain service | Currently: name not blank. Extend per business rule. |
 | `SkyCreatedEvent` / `SkyUpdatedEvent` / `SkyDeletedEvent` | Axon events | Past-tense, immutable, serialised by Jackson. |
@@ -282,6 +283,7 @@ All decisions live under [`../decisions/`](../decisions/) as MADR files. Current
 - [0007 — No Liquibase](../decisions/0007-no-liquibase.md)
 - [0008 — Spring Boot 4 baseline + BOM-first version management](../decisions/0008-spring-boot-4-baseline.md)
 - [0009 — Liquibase + Axon event-store baseline](../decisions/0009-liquibase-axon-baseline.md) (supersedes 0007)
+- [0010 — Upgrade to Axon Framework 5 (Entity Model)](../decisions/0010-upgrade-to-axon-5.md)
 
 ---
 
@@ -302,7 +304,8 @@ All decisions live under [`../decisions/`](../decisions/) as MADR files. Current
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Eventual-consistency window widening under load. | Stale reads after write; user confusion. | Tune segment count and event processor batch size; add Axon metrics; consider a materialised "in-flight write" cache for read-your-writes if needed. |
-| Baseline DDL drift. | The Axon event-store baseline (`0001-axon-event-store-baseline.sql`) was reconstructed from Axon 4.9 entity classes; subsequent Axon upgrades may produce different DDL. | The integration test (`SkyEndToEndIT`) runs Liquibase against a fresh container and Hibernate `validate` immediately after — drift fails the build. On Axon major upgrades, add a new changeset diffing the new entities, never edit the baseline. |
+| Snapshots not wired under Axon 5. | The threshold-trigger setup we had on Axon 4 has no one-line equivalent in Axon 5; we dropped the snapshot config in ADR-0010 rather than block the upgrade. Aggregates with very long event streams will replay all events on load. | Demo workloads aren't affected. Production tuning is a follow-up: reintroduce snapshots via Axon 5's `SnapshotPolicy` + `SnapshotStore` (e.g. `InMemorySnapshotStore` for dev, JPA-backed for prod). |
+| Baseline DDL drift on Axon major upgrades. | New `<NNNN>-axon-X-event-store-migration.yaml` changesets stack on top of the baseline (see `0002-axon-5-event-store-migration.yaml` for the precedent). | Per ADR-0009, the baseline is never edited; the integration test catches schema drift via Hibernate `validate`. |
 | Local profile decodes JWT without verification. | Catastrophic if accidentally enabled in prod. | Profile name `local`; production `SecurityConfig` is `!local & !test`. Document explicitly. |
 | Snapshot threshold tuned to 5 in `application.yaml`. | Unrealistic for prod — too many snapshots. | Override per environment via `axon.snapshot.trigger.threshold`. |
 | Single Mongo collection (`skyProjections`) for the only read view. | Adding a second read shape requires a new projection processor. | Keep one collection per query shape; rebuild from events when introducing a new view. |

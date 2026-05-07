@@ -1,139 +1,209 @@
 ## Context
 
-After `upgrade-spring-boot-4` and `replace-ddlauto-with-liquibase` landed, the working tree is on Spring Boot 4.0.6 / Java 25 / Hibernate 7 / Jackson 3 / Liquibase 5.0.2, with Axon Framework still at **4.9.2 (resolved via `axon-bom 4.9.3`)**. The integration test (`SkyEndToEndIT`) confirms the Axon ↔ Boot 4 incompatibility: `JpaEventStoreAutoConfiguration` doesn't fire, no `EventStore` bean is created, the aggregate-repository factory throws *"Default configuration requires the use of event sourcing"*. Unit tests (43) are green; the failure is entirely at the Axon-Boot4 seam.
+After `upgrade-spring-boot-4` and `replace-ddlauto-with-liquibase`, the working tree is on Spring Boot 4.0.6 / Java 25 / Hibernate 7 / Jackson 3 / Liquibase 5.0.2, with Axon Framework still at 4.9.x. The integration test (`SkyEndToEndIT`) confirms the Axon ↔ Boot 4 incompatibility:
 
-A naive bump of `axonBom` to `5.1.0` was attempted as a probe and confirmed:
-- The BOM artifact id is **renamed**: `org.axonframework:axon-bom` (4.x) → `org.axonframework:axon-framework-bom` (5.x).
-- The Spring Boot integration is **moved**: `axon-spring-boot-starter` is now under groupId `org.axonframework.extensions.spring`. Same artifact id, same version (5.1.0), separate Maven coordinate.
-- Core framework artifacts (`axon-modelling`, `axon-eventsourcing`, `axon-messaging`, `axon-test`) remain under `org.axonframework` and are managed by the new BOM.
-- Compile against Axon 5.1.0 produced **21 errors in `domain/` alone** before any other module was reached. All errors were import-line — Axon 5 reorganised packages substantially.
+- `JpaEventStoreAutoConfiguration` is annotated `@AutoConfiguration` (no ordering hint) + `@ConditionalOnBean(EntityManagerFactory.class)`. Boot 4's stricter autoconfig phase-ordering causes the condition to evaluate before Hibernate has registered the EMF; the autoconfig silently skips itself; no `EventStore` bean is created.
+- Verified empirically against Axon 4.9.2, 4.9.3, and 4.10.4. The bug is on the entire 4.x line. No 4.x patch addresses it.
+- Axon 5 is recompiled against Boot 4 / Spring Framework 7 and resolves the ordering. It is the only path forward.
 
-Constraints:
-- The hexagonal module boundary stays as it is (ADR-0001).
-- The `/v1/starter/**` API surface MUST not change.
-- Liquibase + the existing baseline (`0001-axon-event-store-baseline.{yaml,sql}`) stays. If Axon 5 changes the JPA event-store schema, that's a new `0002-...` changeset, never an edit to `0001`.
-- Public domain ports (`SkyCommandService`, `SkyQueryService`) keep their `CompletableFuture` signatures — Axon 5's new reactor types do not leak across the port boundary.
+A naive bump to `axon-framework-bom 5.1.0` produces 21 compile errors in `domain/` alone. Bytecode scouting of all 5.1.0 jars shows that Axon 5 is a **fundamental rewrite**:
 
-Stakeholders: maintainer, downstream forks, Helm/k8s deployment work that is currently blocked.
+- The `@Aggregate` Spring stereotype, `@AggregateIdentifier`, `@TargetAggregateIdentifier`, `AggregateLifecycle.apply()`, `EventCountSnapshotTriggerDefinition` — none exist anywhere in Axon 5.
+- No `axon-legacy:5.x` or `axon-migration:5.x` BOMs are published.
+- New: an Entity Model under `org.axonframework.modelling.entity.*` with `@RoutingKey` annotations on commands; a `SnapshotPolicy` + `SnapshotStore` snapshot abstraction; annotation packages reorganised under `org.axonframework.messaging.{commandhandling,eventhandling,queryhandling}.annotation` and `org.axonframework.eventsourcing.annotation`; `AggregateBasedJpaEventStorageEngine` for the JPA event store with a new `AggregateEventEntry` table layout.
+
+The constraints from earlier ADRs remain:
+- Hexagonal module boundary holds (ADR-0001).
+- Public `/v1/starter/**` API surface unchanged.
+- Liquibase + the existing `0001-axon-event-store-baseline.{yaml,sql}` are not edited; any Axon 5 schema diff goes into a new `0002-axon-5-event-store-migration.yaml` (ADR-0009).
+- Public domain ports (`SkyCommandService`, `SkyQueryService`) keep their `CompletableFuture` signatures — Axon 5's reactive types do not leak across the boundary.
 
 ## Goals / Non-Goals
 
 **Goals:**
 - Make `:app:test` green end-to-end on Axon 5.1.0 + Spring Boot 4.0.6 + Java 25.
-- Update the version catalog cleanly: BOM rename, starter groupId move, no version pins on individual Axon artifacts.
-- Migrate every Axon import in `domain/`, `service/`, `infrastructure/` to the new package paths.
-- If the Axon 5 JPA event-store schema differs from 4.9.x, capture the diff in a new `0002-axon-5-schema-migration.yaml` changeset (per ADR-0009).
-- Add ADR-0010 documenting the upgrade and the BOM rename.
-- Update arc42 §2 (compatibility matrix) and §9 (ADR list).
+- Migrate `SkyAggregate` to Axon 5's Entity Model with `@RoutingKey`-routed commands and the new event-emission idiom (handler returns or `EventAppender`-style — exact mechanism resolved at compile time).
+- Migrate `SkyCommandServicePrimary` and `SkyQueryServicePrimary` to the Axon 5 gateway packages, preserving their `CompletableFuture<...>` public signatures.
+- Migrate `SkyProjection` annotations + handler signatures to Axon 5.
+- Replace `EventCountSnapshotTriggerDefinition` with a `SnapshotPolicy` + `SnapshotStore` setup, OR drop snapshots cleanly in this change with a documented follow-up.
+- Author a Liquibase `0002-axon-5-event-store-migration.yaml` capturing the Axon 4 → 5 schema diff (only if `validate` complains; otherwise no file).
+- Rewrite `SkyAggregateTest` to whatever fixture API `axon-test:5.x` exposes. The seven test cases keep their invariants.
+- Add ADR-0010 + arc42 §2/§5.2/§9/§11 updates.
 
 **Non-Goals:**
-- No new Axon 5 features (sagas in the new style, deadlines, dead-letter UI, dynamic command routing). Plain CRUD-on-aggregate stays.
-- No move to Axon 5 reactor types in our public ports. `CompletableFuture` is the boundary.
+- No new functional behaviour on `/v1/starter/**`.
+- No move to Axon 5's Dynamic Consistency Boundary (DCB) model. Aggregate-id-routed model preserved.
 - No Axon Server adoption.
-- No move to Axon's new "DCB" (Dynamic Consistency Boundary) model — out of scope; we keep the aggregate-id consistency model.
+- No exposure of Axon 5's `MessageStream` or `Mono`-style types across the public ports.
+- No reuse of dead-letter queue / saga / deadline features in this change. If Axon 5 changed those entities' tables and Hibernate `validate` complains, the `0002-...yaml` covers them; we don't wire them.
 
 ## Decisions
 
-### D1. BOM coordinate change is the single source of the rename
+### D1. BOM coordinate change is two one-liners
 
-The `axon-bom` Gradle alias in `gradle/libs.versions.toml` keeps its name, but its `module` field flips from `org.axonframework:axon-bom` to `org.axonframework:axon-framework-bom`. Every `build.gradle.kts` already imports `platform(libs.findLibrary("axon-bom").get())` — they don't change. The rename is one-line and contained.
+The `axon-bom` Gradle alias keeps its name; only its `module` field flips: `org.axonframework:axon-bom` → `org.axonframework:axon-framework-bom`. Same for `axon-spring-boot-starter`: `org.axonframework:axon-spring-boot-starter` → `org.axonframework.extensions.spring:axon-spring-boot-starter`. Every `build.gradle.kts` that references these aliases stays untouched.
 
-**Alternatives considered:** rename the alias too (e.g. `axon-framework-bom`). Rejected — every module's build script would change; not worth the noise.
+**Alternatives considered:** rename the aliases too (`axon-framework-bom`, `axon-extensions-spring-boot-starter`). Rejected — every `build.gradle.kts` would change for no gain.
 
-### D2. Starter groupId change is the second one-liner
+### D2. Entity Model migration order: aggregate first, gateways second
 
-`axon-spring-boot-starter` library entry's `module` field changes from `org.axonframework:axon-spring-boot-starter` to `org.axonframework.extensions.spring:axon-spring-boot-starter`. Catalog alias unchanged; everywhere we write `libs.axon.spring.boot.starter` stays the same.
+Axon 5's Entity Model centres on the aggregate class itself. Once `SkyAggregate` is correctly annotated for the new model, the gateway and projection adaptations fall out naturally because their handler methods bind to the aggregate's command/event types.
 
-**Alternatives considered:** add a new alias (`axon-extensions-spring-boot-starter`) and migrate references. Rejected — same reason as D1.
+Implementation order:
+1. **Catalog change** (D1).
+2. **`domain/` rewrite** — `SkyAggregate`, the three commands, the three events, the query. Make `:domain:compileJava` green.
+3. **`service/` adaptations** — gateway imports, possible return-type wrapping. Make `:service:compileJava` green.
+4. **`infrastructure/` adaptations** — `SkyProjection`, `AxonConfig`, `PersistenceConfiguration`. Make `:infrastructure:compileJava` green.
+5. **Tests** — `SkyAggregateTest` first (canary for the fixture API change); then service and infrastructure tests; targeted, not bulk.
+6. **Integration test** — iterate on Hibernate `validate` errors, Spring property warnings, bean wiring.
 
-### D3. Migrate imports module-by-module, in dependency order
+This order surfaces the largest semantic breaks first; if Axon 5's Entity Model fundamentally doesn't fit our domain, we discover it on day one rather than after fixing 50 other lines.
 
-Order: `domain` → `service` → `infrastructure` → `app`. Why this order: the build itself enforces it (each downstream module won't compile until its predecessor does), and it isolates errors. We absorb 21 errors in `domain` first, then look at `service`, etc.
+### D3. Aggregate model: classic Entity Model, not DCB
 
-The probe established that all 21 `domain` errors are import-line. The mechanical fix sequence:
-1. Run `./gradlew :domain:compileJava`.
-2. Read each compiler error; resolve its symbol against Axon 5's published Javadoc (or the JAR's `META-INF/services` manifest if Javadoc is offline).
-3. Fix the import; recompile; repeat.
+Axon 5 supports two aggregate styles:
+- **Entity Model** (`org.axonframework.modelling.entity.*`) — closest to the classic aggregate-with-id model. Commands route to a specific entity instance via `@RoutingKey`; events are appended to a stream keyed by that entity's id. State is reconstituted by replaying events.
+- **Dynamic Consistency Boundary (DCB)** — a relational/SQL-style model where commands declare their own consistency window without requiring an aggregate identifier.
 
-**Alternatives considered:** big-bang `find`/`sed` import rewrites. Rejected — Axon 5 reorganisation is not a clean prefix-rename; some classes split across multiple new packages and need case-by-case judgement.
+We use the **Entity Model**. The `Sky` domain has a clear identifier (`skyId`); the existing event stream is already partitioned by it. DCB would force a domain rewrite that we explicitly disallow as a non-goal.
 
-### D4. Aggregate API: keep our hand-coded `SkyAggregate` rather than adopt Axon 5's new model
+**Alternatives considered:** DCB. Rejected — out of scope.
 
-Axon 5 ships an alternative aggregate model based on **DCB (Dynamic Consistency Boundary)** that doesn't require an aggregate identifier. Our existing `SkyAggregate` uses the classic `@Aggregate` + `@AggregateIdentifier` model, which Axon 5 still supports for backwards compatibility. We stay on the classic model — adopting DCB is a separate strategic decision (different domain modelling, different testability story).
+### D4. Event-emission idiom resolved at compile time, not by guessing
 
-**Alternatives considered:** rewrite `SkyAggregate` for DCB. Rejected — out of scope for an upgrade. Open follow-up if the team later decides to demonstrate DCB in the template.
+Axon 5 replaces `AggregateLifecycle.apply(event)` with a different mechanism. Two known patterns:
+- **Return events from command handlers**: `@CommandHandler Sky handle(CreateSkyCommand cmd) { return new SkyCreatedEvent(...); }` (or list/stream-of-events).
+- **Inject an `EventAppender`/`EventPublisher`**: handler receives an appender as a parameter and calls `appender.append(event)`.
 
-### D5. Snapshot trigger API: adapt or drop
+Which one Axon 5.1.0 uses (and whether both work) is resolved at compile time by reading the `@CommandHandler` annotation javadoc and the entity-model handler signatures. The migration sticks with whichever pattern produces the smallest diff against the existing `SkyAggregate` semantics.
 
-Axon 5 may have changed how snapshot triggers attach to aggregates. Three branches:
-- (a) `EventCountSnapshotTriggerDefinition` exists, takes `Snapshotter` + threshold → minimal change to `AxonConfig`.
-- (b) The class moved/renamed → update import + same constructor.
-- (c) The API is fundamentally different (e.g. requires a `SnapshotPolicy` interface) → adapt; the `@Aggregate(snapshotTriggerDefinition = "...")` reference in `SkyAggregate` may need to change.
+### D5. Snapshot policy: best-effort wire-up, otherwise drop
 
-We commit to whichever branch reality presents and document in ADR-0010. If branch (c) requires significant rework, we drop snapshots in this change and add them back in a separate, scoped follow-up — not gating the upgrade on snapshots is acceptable because (i) the template ships with `axon.snapshot.trigger.threshold: 5` for demo only, and (ii) production tunes that value per-environment anyway.
+`EventCountSnapshotTriggerDefinition` is gone. The Axon 5 surface for snapshots:
+- `org.axonframework.eventsourcing.snapshot.api.Snapshotter` — interface (the producer).
+- `org.axonframework.eventsourcing.snapshot.api.SnapshotPolicy` — interface (when to snapshot).
+- `org.axonframework.eventsourcing.snapshot.store.SnapshotStore` / `StoreBackedSnapshotter` — storage + the wiring class.
+- `org.axonframework.eventsourcing.snapshot.inmemory.InMemorySnapshotStore` — dev-friendly default.
 
-### D6. JPA event-store schema diff handling
+If a one-liner equivalent of "every N events" exists (e.g. `SnapshotPolicy.afterEveryN(int)`), `AxonConfig` is rewritten to expose a `@Bean SnapshotPolicy` + `@Bean SnapshotStore`. If the API requires a substantial wiring effort, snapshots are **dropped in this change** with a TODO + follow-up ticket; the template's threshold (5) was always a demo value, not a production tuning.
 
-Axon 5 *may* change the schema for `domain_event_entry`, `snapshot_event_entry`, `token_entry`, `saga_entry`, `association_value_entry`, or `dead_letter_entry`. Detection: after the import migration compiles, run `:app:test` and read any Hibernate `Schema validation: ...` errors. Each error becomes a column add / drop / rename / type-change in the new `0002-axon-5-schema-migration.yaml` changeset. If no schema diff is needed, the file is not added — the existing baseline stays the only changeset.
+This decision is binary: if dropped, `axon.snapshot.trigger.threshold` property is removed, the bean is removed, the `@Aggregate(snapshotTriggerDefinition = "...")` reference (which doesn't exist in Axon 5 anyway) is gone. ADR-0010 records which branch was taken.
 
-**Alternatives considered:** regenerate the baseline from scratch under Axon 5. Rejected — violates ADR-0009's "baseline is a frozen historical artefact" principle.
+**Alternatives considered:** invest a follow-up's worth of time in this change to fully reproduce the threshold-trigger behaviour. Rejected — scope creep; snapshots are an optimisation, not a correctness requirement.
 
-### D7. Configuration property migration
+### D6. JPA event-store schema migration: empirical, not speculative
 
-Axon 5 may rename properties under `axon.*`:
-- `axon.axonserver.enabled` → likely stable.
-- `axon.serializer.{events,messages,general}` → likely stable.
-- `axon.eventhandling.processors.<name>.{mode,initial-segment-count}` → check Axon 5 reference; possibly renamed.
-- `axon.snapshot.trigger.threshold` → custom (defined by us in `application.yaml` for our `@Bean`); stable as long as we keep the bean.
+We **don't** try to predict Axon 5's table layout from documentation. The verification gate is:
 
-Process: after import migration compiles and runtime starts, watch for Spring Boot's "Configuration property … did not match" warnings; address each individually. The Spring Boot **properties-migrator** dependency (already on the Boot 4 BOM) helps here — we add it as `developmentOnly` for one apply cycle, then remove.
+1. After the import migration compiles, run `:app:test`.
+2. Read every `Schema validation: missing/extra/wrong-type ...` error from Hibernate.
+3. For each error, add an explicit operation in `0002-axon-5-event-store-migration.yaml`: `addColumn`, `dropColumn`, `modifyDataType`, `createTable`, `dropTable`, `createSequence`.
+4. Re-run; iterate.
 
-### D8. Test fixture API
+The new changeset stacks on top of `0001-axon-event-store-baseline.sql`. On a fresh DB Liquibase applies both in order. On a legacy dev DB the baseline is MARK_RAN'd and only `0002-...yaml` runs. The result is byte-identical Axon 5 schema in both cases.
 
-`AggregateTestFixture<SkyAggregate>` is from `axon-test`. Axon 5's `axon-test` may have a different fixture API or move the class. The unit test `SkyAggregateTest` is the canary — if it compiles, the fixture API is stable; if not, we adapt.
+If the diff turns out to be substantial — e.g. Axon 5 dropped `domain_event_entry` entirely in favour of `aggregate_event_entry` — the changeset performs the rename + data move. Drop tables Axon 5 doesn't use (e.g. `dead_letter_entry` if Axon 5 reorganised the dead-letter queue) only if validation actually demands it; otherwise leave them as orphan inert tables (cheaper than risking a destructive drop on someone's dev data).
 
-The expected change is that fixture assertions like `expectEvents(...)`, `expectMarkedDeleted()`, and `expectException(...)` keep their names but their parameter types / matcher integration may shift (Axon 5 may have replaced Hamcrest with AssertJ-style matchers). The test stays expressive either way.
+**Alternatives considered:** regenerate `0001-...sql` against Axon 5 from scratch. Rejected — violates ADR-0009's "baseline is a frozen artefact" principle.
 
-### D9. ADR-0010 + arc42 update + property migration cleanup
+### D7. Configuration property migration via spring-boot-properties-migrator (one-cycle dep)
 
-- `docs/architecture/decisions/0010-upgrade-to-axon-5.md` — new ADR. Headline points: BOM rename, starter groupId move, why we stay on classic-aggregate (D4), snapshot-trigger branch chosen (D5), schema-diff outcome (D6), property migration outcome (D7).
-- arc42 §2 compatibility-matrix Axon row updated.
-- arc42 §9 ADR list extended.
-- arc42 §11 Risks: any remaining Axon-Boot4 risk row removed.
+Axon 5 may rename or remove keys under `axon.*`. To avoid silently-ignored properties:
+
+1. Add `developmentOnly("org.springframework.boot:spring-boot-properties-migrator")` to `app/build.gradle.kts` for the duration of this task.
+2. Run the application; the migrator logs every renamed key with its replacement.
+3. Update `application.yaml` and `application-test.yaml` accordingly.
+4. **Remove the migrator dependency before final commit.**
+
+If the migrator catches nothing, the dep was harmless. If it catches keys, we've automated what would otherwise be tribal knowledge.
+
+### D8. AggregateTestFixture: rewrite tests, don't preserve API parity
+
+`SkyAggregateTest` uses `org.axonframework.test.aggregate.AggregateTestFixture` from `axon-test:4.9.x`. Axon 5's `axon-test:5.1.0` may have:
+- (a) Kept the fixture API stable → trivial recompile.
+- (b) Renamed/relocated the fixture class → import fix + adapt assertions.
+- (c) Replaced the fixture entirely with a new test DSL → seven test cases rewritten.
+
+We accept whichever reality presents. The seven test cases preserve their **invariants** (create emits `SkyCreatedEvent`; blank-name rejected; etc.), not their syntax. If branch (c) requires full rewrite, the cases are renamed and re-expressed — count stays at 7 in `SkyAggregateTest`.
+
+**Alternatives considered:** delete `SkyAggregateTest` and rely on `SkyEndToEndIT` for aggregate coverage. Rejected — the integration test cannot exercise validation rejection paths cleanly (commands fail with stack traces from the gateway, not assertions in the aggregate). Aggregate-level unit tests stay.
+
+### D9. `PersistenceConfiguration` `@EntityScan` packages
+
+The current `@EntityScan(basePackages = {"com.lukksarna.skystarter.infrastructure.persistence", "org.axonframework"})` was correct for Axon 4 (it scanned all of Axon's `*.jpa` packages). Axon 5 may have moved its JPA entities into more specific packages (e.g. `org.axonframework.eventsourcing.eventstore.jpa`); a broader `org.axonframework` scan still finds them but pulls in noise. We narrow if the IT runtime complains; otherwise leave the broad scan as-is for the 5.x line.
+
+### D10. ADR-0010 + arc42 + cleanup
+
+- New ADR `docs/architecture/decisions/0010-upgrade-to-axon-5.md` covering: the Boot-4 wiring bug (with the specific autoconfig-ordering finding), why a 4.x patch wasn't an option, the Entity Model rewrite scope, the Snapshot Policy decision (D5 branch chosen), the schema migration outcome (D6 outcome), the test-fixture decision (D8 outcome).
+- arc42 §2 — Axon row updated.
+- arc42 §5.2 (Domain whitebox) — aggregate description rewritten.
+- arc42 §9 — ADR-0010 link.
+- arc42 §11 — Axon-Boot4 risk row removed; if snapshots were dropped, a "snapshots not currently wired under Axon 5" risk row added.
 - README — no change expected.
 
 ## Risks / Trade-offs
 
-- **Axon 5 messaging model is async-first.** If `CommandGateway.send` returns something incompatible with our `CompletableFuture<UUID>` shape, we adapt at the service layer. Mitigation: the `service` module is small (two classes), the rewrite is bounded.
-- **Aggregate-test fixture incompatibility.** If `AggregateTestFixture` is gone or radically different, the seven `SkyAggregateTest` cases need rewrite. Acceptable — they're small and the assertions are simple. Worst case we lose one round of test-greenness while we redo them.
-- **Hidden Axon 5 schema changes the JPA event-store autoconfig assumes.** Hibernate `validate` failures are the detection mechanism; per-failure mitigation is a column add/drop in `0002-...yaml`.
-- **Axon 5 dropped legacy `legacyjpa` packages.** Not relevant to us — we never used them.
-- **Property rename surfaces only at runtime.** Mitigation: add `spring-boot-properties-migrator` for one apply cycle (D7); remove afterwards.
-- **DCB tempts scope creep.** It's tempting to "modernise" the aggregate while we're in the file. Resist. ADR-0010 explicitly notes DCB is out of scope.
-- **Test profile's `OAuth2ResourceServerAutoConfiguration` exclusion.** If Axon 5 introduces a new conditional dependency on Spring Security beans, the existing exclusion in `application-test.yaml` may need adjustment. Detect by re-running `:app:test`.
+- **Hidden Axon 5 API mismatches.** We're flying without comprehensive Axon 5 docs in this environment; some package paths and APIs are inferred from bytecode listings. Expect 2–3 iterations of compile-error cleanup beyond the planned 21 imports. Mitigation: module-by-module migration order (D2) localises errors; we can pause and re-design at any module gate.
+- **Entity Model fundamental fit.** If Axon 5's Entity Model has a constraint we can't satisfy with the `Sky` domain (e.g. requires multi-entity aggregates we don't have), we fall back to a custom `Repository<SkyAggregate>` implementation rather than the Entity Model — a documented escape hatch.
+- **Snapshots dropped** (D5 branch (b)). The template loses snapshot-trigger demo functionality. Acceptable, documented in ADR-0010.
+- **Dev-data destruction in `0002-...yaml`.** If the Axon 5 schema migration drops or renames tables, dev databases lose data. Acceptable for a template; production has no template-managed Axon data.
+- **`MessageStream` adaptation cost.** If `CommandGateway.send` returns `MessageStream<?>` instead of `CompletableFuture<UUID>`, the service primary classes need a `.first().asMono().toFuture()`-style adapter. Bounded — small classes, simple adapter.
+- **Test count regression.** If branch D8(c) forces test rewrites, individual cases may merge or split. We keep the count at 7 within `SkyAggregateTest` (43 total) by preserving the invariants rather than the test method names.
+- **`spring-boot-properties-migrator` left in by mistake.** Mitigation: explicit removal step in tasks.md §6 and verified in §9.
 
 ## Migration Plan
 
-1. **Catalog changes** — `axonBom` value → `5.1.0`; `axon-bom` `module` → `org.axonframework:axon-framework-bom`; `axon-spring-boot-starter` `module` → `org.axonframework.extensions.spring:axon-spring-boot-starter`. Run `./gradlew :infrastructure:dependencies` and confirm Axon 5.1.0 resolves; build expected to fail at `:domain:compileJava`.
-2. **`domain` import migration** — fix all 21 errors. Recompile until green.
-3. **`service` import migration** — fewer errors expected (~5).
-4. **`infrastructure` import migration** — `SkyProjection`, `AxonConfig` adjusted.
-5. **`app` smoke** — `./gradlew clean compileJava compileTestJava` green.
-6. **Unit tests** — `./gradlew :domain:test :service:test :infrastructure:test`. Adapt `AggregateTestFixture` calls if needed.
-7. **Integration test** — `./gradlew :app:test` (Docker required). Iterate:
-   - Hibernate validate errors → add `0002-axon-5-schema-migration.yaml` columns.
-   - Spring property warnings → update `application.yaml` keys; once stable, remove `properties-migrator`.
-   - Bean wiring errors → adjust `AxonConfig` per D5 / D6.
-8. **Snapshot decision** — confirm whether D5 branch (a), (b), or (c) applies; document in ADR-0010.
-9. **Verification gate** — `./gradlew clean build` green; `:app:test` green; `dependencyCheckAnalyze` no new high-severity findings vs. pre-Axon-5 baseline.
-10. **ADR + arc42** — write 0010, update §2 and §9.
+The plan is staged. Each gate is a green build (or a green specific test).
 
-Rollback: revert the upgrade commit. The `axon-bom` 4.9.3 reverts atomically because the alias change is one line; no data loss.
+**Gate 1 — Catalog resolves:**
+1. Update `axon-bom` and `axon-spring-boot-starter` library `module` values + `axonBom` version (D1).
+2. `./gradlew :infrastructure:dependencies` shows `axon-framework-bom:5.1.0` and the starter at `org.axonframework.extensions.spring:axon-spring-boot-starter:5.1.0`.
+
+**Gate 2 — `domain/` compiles:**
+3. Rewrite `SkyAggregate` for Axon 5 Entity Model. Handler signatures resolved at compile time.
+4. Re-annotate commands: `@TargetAggregateIdentifier` → `@RoutingKey`.
+5. Update event imports if any moved (likely none — events are POJOs).
+6. `./gradlew :domain:compileJava` green.
+
+**Gate 3 — `service/` compiles:**
+7. Update `CommandGateway` / `QueryGateway` imports.
+8. If gateway return types changed, wrap them so the public `SkyCommandService` / `SkyQueryService` ports still return `CompletableFuture`.
+9. `./gradlew :service:compileJava` green.
+
+**Gate 4 — `infrastructure/` compiles:**
+10. Update `@EventHandler`, `@QueryHandler`, `@ProcessingGroup` imports in `SkyProjection`.
+11. Rewrite `AxonConfig` per D5 branch (a) wire `SnapshotPolicy` + `SnapshotStore`, or (b) drop snapshots.
+12. Verify `PersistenceConfiguration` `@EntityScan` packages (D9).
+13. `./gradlew :infrastructure:compileJava` green.
+
+**Gate 5 — Unit tests:**
+14. Adapt `SkyAggregateTest` to the Axon 5 fixture API (D8). Tests count stays 7.
+15. Adapt `SkyCommandServicePrimaryTest`, `SkyQueryServicePrimaryTest` to new gateway signatures.
+16. `./gradlew :domain:test :service:test :infrastructure:test` — 43 unit tests green.
+
+**Gate 6 — Integration test green:**
+17. Run `./gradlew :app:test` (Docker required).
+18. Hibernate `validate` errors → add operations to a new `0002-axon-5-event-store-migration.yaml` (D6); update `db.changelog-master.yaml` include list.
+19. Spring property warnings → add `spring-boot-properties-migrator` (D7), follow its hints, update YAML, remove the dep.
+20. Bean-wiring errors → adjust `AxonConfig` per D5.
+21. Iterate until all 4 IT cases pass.
+
+**Gate 7 — Documentation + verification:**
+22. Write ADR-0010 (D10).
+23. Update arc42 §2, §5.2, §9, §11.
+24. `./gradlew clean build` green.
+25. `./gradlew dependencyCheckAnalyze` — no new high-severity findings vs. pre-Axon-5 baseline.
+26. Audit `gradle/libs.versions.toml` against the `platform-baseline` spec.
+
+Rollback: revert the upgrade commit. The `axon-bom` line reverts atomically; the `0002-axon-5-event-store-migration.yaml` file is removed (or its entry in `db.changelog-master.yaml` is reverted, which makes Liquibase re-baseline next start). Dev DBs created during the upgrade may need a manual drop+recreate.
 
 ## Open Questions
 
-- **Is `AggregateTestFixture` API stable or did it move under `axon-test` 5.x?** Decides scope of test rewrites in step 6.
-- **Does Axon 5 add/remove JPA entities that would affect Liquibase?** Decides whether `0002-...yaml` exists.
-- **Does Axon 5 still ship a `Snapshotter` interface or did it become a `SnapshotPolicy`?** Decides D5 branch.
-- **Spring Modulith + Axon 5 interaction.** We have the Spring Modulith BOM imported but no Modulith libs in use. If Axon 5 plays better with Modulith's event-publication infra, that's a follow-up exploration — not this change.
-- **Does anything in `axon.eventhandling.processors.*` config get renamed?** Verifiable in ~5 minutes by running the app and watching property-binder warnings.
+These are answered during apply, not before:
+
+- **Does Axon 5's `@CommandHandler` on an entity method return events or use an injected appender?** Resolved at gate 2.
+- **Is `AggregateTestFixture` still in `axon-test:5.x`?** Resolved at gate 5.
+- **Does Axon 5's `JpaEventStoreAutoConfiguration` need any property to opt-in (e.g. `axon.eventstore=jpa`)?** Resolved at gate 6 by checking property-binder warnings.
+- **What's the exact `SnapshotPolicy` factory method for "every N events"?** Resolved at gate 4. If no such method exists, D5 branch (b) is taken.
+- **Does the `0002-...yaml` need to drop the Axon 4 `dead_letter_entry`, `saga_entry`, `association_value_entry` tables?** Resolved empirically at gate 6 — only what Hibernate `validate` complains about.
+- **Does `axon-spring` (the new groupId artifact) bring its own autoconfig classes, or does the starter cover everything?** Read the starter POM transitive list at gate 1; resolve at gate 4 if `infrastructure/` needs an explicit `axon-spring` import.

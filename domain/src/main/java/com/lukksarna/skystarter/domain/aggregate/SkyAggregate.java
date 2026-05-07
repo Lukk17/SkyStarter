@@ -1,40 +1,43 @@
 package com.lukksarna.skystarter.domain.aggregate;
 
-import com.lukksarna.skystarter.domain.command.CreateSkyCommand;
-import com.lukksarna.skystarter.domain.command.DeleteSkyCommand;
-import com.lukksarna.skystarter.domain.command.UpdateSkyCommand;
 import com.lukksarna.skystarter.domain.event.SkyCreatedEvent;
 import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
-import com.lukksarna.skystarter.domain.service.SkyValidator;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.axonframework.commandhandling.CommandHandler;
-import org.axonframework.eventsourcing.EventSourcingHandler;
-import org.axonframework.modelling.command.AggregateIdentifier;
-import org.axonframework.modelling.command.AggregateLifecycle;
-import org.axonframework.spring.stereotype.Aggregate;
+import org.axonframework.eventsourcing.annotation.EventSourcingHandler;
+import org.axonframework.eventsourcing.annotation.reflection.EntityCreator;
+import org.axonframework.extension.spring.stereotype.EventSourced;
 
 import java.util.UUID;
 
-import static org.axonframework.modelling.command.AggregateLifecycle.apply;
-
-@NoArgsConstructor
+/**
+ * Sky aggregate state, modelled with the Axon 5 Entity Model + Spring stereotype.
+ *
+ * The {@link EventSourced} annotation is the Spring-aware companion to
+ * {@code @EventSourcedEntity}: the {@code SpringEventSourcedEntityLookup}
+ * post-processor scans for it and registers a {@code Repository<SkyAggregate, UUID>}
+ * with the Axon configuration. The {@code idType} attribute is mandatory —
+ * without it the lookup throws "No repository was registered for the given
+ * entity type with id type [UUID]". The {@code tagKey} attribute pairs with
+ * {@code @EventTag} on event id fields so the event store can resolve which
+ * stream an event belongs to.
+ *
+ * Command handlers live in {@link SkyCommandHandlers} (Axon 5 keeps them
+ * outside the entity); this class is a pure state object with an
+ * {@link EntityCreator} constructor and {@link EventSourcingHandler} methods.
+ */
 @Getter
 @Setter
-@Aggregate(snapshotTriggerDefinition = "snapshotTriggerDefinition")
+@EventSourced(idType = UUID.class, tagKey = "skyId")
 public class SkyAggregate {
 
-    @AggregateIdentifier
     private UUID skyId;
     private String name;
     private String status;
 
-    @CommandHandler
-    public SkyAggregate(CreateSkyCommand command) {
-        new SkyValidator().validateName(command.getName());
-        apply(new SkyCreatedEvent(command.getSkyId(), command.getName()));
+    @EntityCreator
+    public SkyAggregate() {
     }
 
     @EventSourcingHandler
@@ -44,24 +47,13 @@ public class SkyAggregate {
         this.status = "CREATED";
     }
 
-    @CommandHandler
-    public void handle(UpdateSkyCommand command) {
-        new SkyValidator().validateName(command.getName());
-        apply(new SkyUpdatedEvent(command.getSkyId(), command.getName()));
-    }
-
     @EventSourcingHandler
     public void on(SkyUpdatedEvent event) {
         this.name = event.getName();
     }
 
-    @CommandHandler
-    public void handle(DeleteSkyCommand command) {
-        apply(new SkyDeletedEvent(command.getSkyId()));
-    }
-
     @EventSourcingHandler
     public void on(SkyDeletedEvent event) {
-        AggregateLifecycle.markDeleted();
+        this.status = "DELETED";
     }
 }
