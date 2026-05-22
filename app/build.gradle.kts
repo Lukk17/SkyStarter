@@ -79,12 +79,24 @@ tasks.named("build") {
 tasks.named("generateOpenApiDocs") {
     notCompatibleWithConfigurationCache("springdoc-openapi plugin captures Task references")
 }
-tasks.named("forkedSpringBootRun") {
+val javaToolchains = extensions.getByType<JavaToolchainService>()
+val javaPluginExt = extensions.getByType<JavaPluginExtension>()
+
+tasks.named<com.github.psxpaul.task.JavaExecFork>("forkedSpringBootRun") {
     notCompatibleWithConfigurationCache("JavaExecFork plugin captures Task references")
-    // The plugin invokes the forked JVM with subproject jars on its
-    // classpath but doesn't declare them as inputs, so Gradle 9 warns
-    // about implicit dependencies. Wire the jars explicitly.
+    // Upstream plugin bug #1: forkedSpringBootRun uses BootRun's classpath
+    // (which references subproject jars) but doesn't declare those jar
+    // tasks as inputs. Gradle 9 warns about implicit dependencies. Wire
+    // explicit dependsOn until the plugin is fixed.
     dependsOn(":domain:jar", ":service:jar", ":infrastructure:jar")
+    // Upstream plugin bug #2: the plugin launches the forked JVM using the
+    // Gradle daemon's JVM (Java 21 on Gradle 9.x) instead of the project's
+    // Java toolchain. With Java 25 bytecode in the jars that fails with
+    // UnsupportedClassVersionError (class version 69 vs runtime 65). Pin
+    // the launcher to the project's toolchain explicitly. JavaExecFork
+    // exposes javaLauncher directly (it's not a JavaExec subclass, even
+    // though it looks like one in the Gradle UI).
+    javaLauncher.set(javaToolchains.launcherFor(javaPluginExt.toolchain))
 }
 tasks.named("forkedSpringBootStop") {
     notCompatibleWithConfigurationCache("JavaExecFork plugin captures Task references")
