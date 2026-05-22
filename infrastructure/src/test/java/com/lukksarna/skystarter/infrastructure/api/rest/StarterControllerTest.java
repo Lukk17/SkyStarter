@@ -17,7 +17,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.accept.ApiVersionStrategy;
+import org.springframework.web.accept.DefaultApiVersionStrategy;
+import org.springframework.web.accept.PathApiVersionResolver;
+import org.springframework.web.accept.SemanticApiVersionParser;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -52,8 +57,20 @@ class StarterControllerTest {
     void setUp() {
         StarterController controller = new StarterController(commandService, queryService, apiMapper);
         mvc = MockMvcBuilders.standaloneSetup(controller)
+                .setApiVersionStrategy(pathSegmentZeroVersionStrategy())
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
+    }
+
+    private static ApiVersionStrategy pathSegmentZeroVersionStrategy() {
+        return new DefaultApiVersionStrategy(
+                List.of(new PathApiVersionResolver(0)),
+                new SemanticApiVersionParser(),
+                false,
+                null,
+                true,
+                null,
+                null);
     }
 
     @Test

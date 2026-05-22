@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "Starter", description = "Starter API")
-@RequestMapping(value = "/v1/starter", produces = "application/json")
+@RequestMapping(value = "/{version}/starter", produces = "application/json")
 @SkyUser
 public class StarterController {
 
@@ -39,7 +39,7 @@ public class StarterController {
     )
     @ApiCommonSuccessResponses
     @ApiCommonErrorResponses
-    @GetMapping("/{skyId}")
+    @GetMapping(value = "/{skyId}", version = "1")
     public CompletableFuture<ResponseEntity<SkyResponse>> getSky(@PathVariable("skyId") UUID skyId) {
         return skyQueryService
                 .findById(skyId)
@@ -53,7 +53,7 @@ public class StarterController {
     )
     @ApiCommonSuccessResponses
     @ApiCommonErrorResponses
-    @PostMapping
+    @PostMapping(version = "1")
     public CompletableFuture<ResponseEntity<UUID>> createSky(@Valid @RequestBody CreateSkyRequest request) {
         return skyCommandService.createSky(request.getName())
                 .thenApply(id -> ResponseEntity.status(HttpStatus.CREATED).body(id));
@@ -65,7 +65,7 @@ public class StarterController {
     )
     @ApiCommonSuccessResponses
     @ApiCommonErrorResponses
-    @PutMapping("/{skyId}")
+    @PutMapping(value = "/{skyId}", version = "1")
     public CompletableFuture<Void> updateSky(@PathVariable("skyId") UUID skyId, @Valid @RequestBody UpdateSkyRequest request) {
         return skyCommandService.updateSky(skyId, request.getName());
     }
@@ -76,7 +76,7 @@ public class StarterController {
     )
     @ApiCommonSuccessResponses
     @ApiCommonErrorResponses
-    @DeleteMapping("/{skyId}")
+    @DeleteMapping(value = "/{skyId}", version = "1")
     public CompletableFuture<Void> deleteSky(@PathVariable("skyId") UUID skyId) {
         return skyCommandService.deleteSky(skyId);
     }
