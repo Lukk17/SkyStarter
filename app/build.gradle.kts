@@ -71,3 +71,17 @@ openApi {
 tasks.named("build") {
     dependsOn("generateOpenApiDocs")
 }
+
+// The springdoc-openapi-gradle-plugin and the underlying JavaExecFork plugin
+// both store Task references and BootRun internals that Gradle 9's
+// configuration cache can't serialize. Mark the tasks incompatible so the
+// rest of the build cache keeps working.
+tasks.named("generateOpenApiDocs") {
+    notCompatibleWithConfigurationCache("springdoc-openapi plugin captures Task references")
+}
+tasks.named("forkedSpringBootRun") {
+    notCompatibleWithConfigurationCache("JavaExecFork plugin captures Task references")
+}
+tasks.named("forkedSpringBootStop") {
+    notCompatibleWithConfigurationCache("JavaExecFork plugin captures Task references")
+}

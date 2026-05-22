@@ -30,34 +30,39 @@ those land.
 `integrationTest` runs the contents of `**/integration/**` sequentially with
 `forkEvery = 1` (fresh JVM per IT class -- prevents Axon lifecycle bean
 state leaking between contexts), backed by shared Testcontainers. `check`
-runs both, the JaCoCo 0.80 INSTRUCTION gate, and `dependencyCheckAnalyze`.
+runs both plus the JaCoCo 0.80 INSTRUCTION gate. OWASP `dependencyCheckAggregate`
+is a separate manual / CI step (see below) -- it can't coexist with
+`org.gradle.parallel=true` in the same build invocation.
 
-Cold `./gradlew check` is about a minute on first run (NVD download) and
-under 30 seconds after.
+Cold `./gradlew check` is about 30 seconds.
 
 ## OWASP dependency-check
 
-Per-subproject `dependencyCheckAnalyze` is wired into `check` and is fine
-under the configuration cache.
-
-`dependencyCheckAggregate` (cross-build aggregate report at
-`build/reports/dependency-check-report.html`) **must** be run with
-`--no-configuration-cache --no-parallel`:
+The OWASP plugin is applied at the root project only. Running the
+aggregate task covers every subproject in one pass:
 
 ```bash
-./gradlew dependencyCheckAggregate --no-configuration-cache --no-parallel
+./gradlew dependencyCheckAggregate --no-parallel
 ```
 
-The plugin captures `Project` references at task-action time, which is
-incompatible with Gradle 9's configuration cache. Issue is upstream; see
-https://github.com/dependency-check/dependency-check-gradle for status.
+`--no-parallel` is required: the plugin resolves subproject
+configurations from the aggregate task at execution time, which Gradle 9
+rejects under `org.gradle.parallel=true` ("Resolution of the
+configuration ':app:annotationProcessor' was attempted without an
+exclusive lock"). The task itself is marked
+`notCompatibleWithConfigurationCache(...)` so the config cache is
+quietly discarded for it and the rest of the build cache keeps working.
+
+The task is **not** wired into `check` -- the parallel-execution clash
+above means it would slow every build down. Treat it as a CI-side gate
+or a release-time check.
 
 Suppressions live in [`dependency-check-suppressions.xml`](../dependency-check-suppressions.xml).
 Every entry has an `until` sunset date -- when that date passes,
-`dependencyCheckAnalyze` will re-fail the build on those CVEs and the
-team must decide: upgrade, accept again with new rationale, or replace
-the dep. Don't bump sunsets without a written note in the Accepted
-findings table below.
+`dependencyCheckAggregate` will re-fail the build on those CVEs and
+the team must decide: upgrade, accept again with new rationale, or
+replace the dep. Don't bump sunsets without a written note in the
+Accepted findings table below.
 
 ## buildHealth (dependency-analysis)
 

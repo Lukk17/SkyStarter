@@ -3,15 +3,14 @@
     <!--
         Baseline suppressions for SkyStarter on Spring Boot 4.0.6 / Axon 5.1.0.
 
-        Each CVE here was flagged by `./gradlew dependencyCheckAggregate
-        --no-configuration-cache --no-parallel` at CVSS >= 7.0. They live in
-        transitive dependencies of Spring Boot / Axon that we don't pin
-        directly. The fix path for each one is either:
-        - Upgrade Spring Boot when a patch release ships
-        - Pin the transitive dep ourselves via constraints
-        - Replace the dep entirely
+        Each CVE here was flagged by dependencyCheckAggregate (run with the
+        no-configuration-cache and no-parallel flags) at CVSS >= 7.0. They
+        live in transitive dependencies of Spring Boot / Axon that we don't
+        pin directly. The fix path for each one is either: upgrade Spring
+        Boot when a patch release ships, pin the transitive dep ourselves
+        via constraints, or replace the dep entirely.
 
-        The `until` date on each entry is the sunset: dependency-check will
+        The until date on each entry is the sunset: dependency-check will
         re-fail the build on that date if the CVE is still present, forcing
         a review. Bump the date only with a written rationale in
         docs/development.md "Accepted findings".
