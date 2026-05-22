@@ -100,7 +100,7 @@ class SkyEndToEndIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"  \"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+                .andExpect(jsonPath("$.type").value("urn:skystarter:error:validation"));
     }
 
     private MvcResult performMaybeAsync(RequestBuilder request) throws Exception {

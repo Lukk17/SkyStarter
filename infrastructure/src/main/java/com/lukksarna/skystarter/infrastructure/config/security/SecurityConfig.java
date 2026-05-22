@@ -1,5 +1,6 @@
 package com.lukksarna.skystarter.infrastructure.config.security;
 
+import com.lukksarna.skystarter.infrastructure.api.exception.ProblemDetailAccessDeniedHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,7 +34,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, ProblemDetailAccessDeniedHandler accessDeniedHandler)
+            throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**", "/openapi/**").permitAll()
@@ -42,6 +44,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtRolesConverter()))
                 )
+                .exceptionHandling(handling -> handling.accessDeniedHandler(accessDeniedHandler))
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .build();

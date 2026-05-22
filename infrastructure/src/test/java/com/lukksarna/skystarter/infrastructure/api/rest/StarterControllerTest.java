@@ -79,8 +79,8 @@ class StarterControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\" \"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.details.name").exists());
+                .andExpect(jsonPath("$.type").value("urn:skystarter:error:validation"))
+                .andExpect(jsonPath("$.errors.name").exists());
     }
 
     @Test
@@ -114,7 +114,7 @@ class StarterControllerTest {
 
         mvc.perform(asyncDispatch(async))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+                .andExpect(jsonPath("$.type").value("urn:skystarter:error:not-found"));
     }
 
     @Test
@@ -158,7 +158,7 @@ class StarterControllerTest {
 
         mvc.perform(asyncDispatch(async))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"));
+                .andExpect(jsonPath("$.type").value("urn:skystarter:error:internal"));
     }
 
     private static org.springframework.test.web.servlet.RequestBuilder asyncDispatch(MvcResult result) {

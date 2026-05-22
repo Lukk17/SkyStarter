@@ -1,58 +1,83 @@
 package com.lukksarna.skystarter.infrastructure.api.exception;
 
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
+import java.util.Map;
+import java.util.concurrent.CompletionException;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.messaging.queryhandling.QueryExecutionException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.util.Map;
-import java.util.concurrent.CompletionException;
-import java.util.stream.Collectors;
-
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String GENERIC_INVALID_ARGUMENT = "Invalid argument.";
+    private static final String GENERIC_INTERNAL_ERROR = "Something went wrong.";
+    private static final String GENERIC_NOT_FOUND = "There is no resource under specified path.";
+    private static final String GENERIC_BAD_JSON = "Malformed JSON request body.";
+    private static final String VALIDATION_DETAIL = "Request validation failed.";
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleApiArgumentNotValidException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ProblemDetail> handleApiArgumentNotValidException(MethodArgumentNotValidException ex) {
         log.warn("API request body not valid: {}", ex.getMessage());
 
-        Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
-                .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage));
+        Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
+                .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage, (a, b) -> a));
 
-        return ResponseEntity.badRequest().body(new ErrorResponse("VALIDATION_ERROR", errors));
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, VALIDATION_DETAIL);
+        detail.setType(ProblemTypes.VALIDATION);
+        detail.setTitle("Validation Error");
+        detail.setProperty("errors", fieldErrors);
+        return ResponseEntity.badRequest().body(detail);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ProblemDetail> handleBadJson(HttpMessageNotReadableException ex) {
+        log.warn("Malformed request body", ex);
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, GENERIC_BAD_JSON);
+        detail.setType(ProblemTypes.BAD_JSON);
+        detail.setTitle("Bad Request");
+        return ResponseEntity.badRequest().body(detail);
     }
 
     @ExceptionHandler(SkyNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(SkyNotFoundException ex) {
+    public ResponseEntity<ProblemDetail> handleNotFound(SkyNotFoundException ex) {
         log.info("Resource not found: {}", ex.getMessage());
-        return ResponseEntity.status(404).body(new ErrorResponse("NOT_FOUND", ex.getMessage()));
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        detail.setType(ProblemTypes.NOT_FOUND);
+        detail.setTitle("Not Found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(detail);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        log.warn("API illegal argument: {}", ex.getMessage());
-        return ResponseEntity.badRequest().body(new ErrorResponse("BAD_REQUEST", ex.getMessage()));
+    public ResponseEntity<ProblemDetail> handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.warn("API illegal argument", ex);
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, GENERIC_INVALID_ARGUMENT);
+        detail.setType(ProblemTypes.ILLEGAL_ARGUMENT);
+        detail.setTitle("Bad Request");
+        return ResponseEntity.badRequest().body(detail);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
+    public ResponseEntity<ProblemDetail> handleNoResourceFoundException(NoResourceFoundException ex) {
         log.info("No resource at path: {}", ex.getMessage());
-        return ResponseEntity.status(404)
-                .body(new ErrorResponse("NOT_FOUND", "There is no resource under specified path."));
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, GENERIC_NOT_FOUND);
+        detail.setType(ProblemTypes.NOT_FOUND);
+        detail.setTitle("Not Found");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(detail);
     }
 
-    /**
-     * Axon 5 wraps query-handler exceptions in {@link QueryExecutionException}.
-     * Unwrap and route to the appropriate handler.
-     */
     @ExceptionHandler(QueryExecutionException.class)
-    public ResponseEntity<ErrorResponse> handleQueryExecutionException(QueryExecutionException ex) {
+    public ResponseEntity<ProblemDetail> handleQueryExecutionException(QueryExecutionException ex) {
         Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
         if (cause instanceof SkyNotFoundException notFound) {
             return handleNotFound(notFound);
@@ -61,12 +86,11 @@ public class GlobalExceptionHandler {
             return handleIllegalArgumentException(illegal);
         }
         log.error("Unexpected query-execution error", cause);
-        return ResponseEntity.internalServerError()
-                .body(new ErrorResponse("INTERNAL_ERROR", "Something went wrong"));
+        return internalServerError();
     }
 
     @ExceptionHandler(CompletionException.class)
-    public ResponseEntity<ErrorResponse> handleCompletion(CompletionException ex) {
+    public ResponseEntity<ProblemDetail> handleCompletion(CompletionException ex) {
         Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
         if (cause instanceof SkyNotFoundException notFound) {
             return handleNotFound(notFound);
@@ -75,14 +99,19 @@ public class GlobalExceptionHandler {
             return handleIllegalArgumentException(illegal);
         }
         log.error("Unexpected async error", cause);
-        return ResponseEntity.internalServerError()
-                .body(new ErrorResponse("INTERNAL_ERROR", "Something went wrong"));
+        return internalServerError();
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(Exception ex) {
+    public ResponseEntity<ProblemDetail> handleException(Exception ex) {
         log.error("Unexpected error", ex);
-        return ResponseEntity.internalServerError()
-                .body(new ErrorResponse("INTERNAL_ERROR", "Something went wrong"));
+        return internalServerError();
+    }
+
+    private static ResponseEntity<ProblemDetail> internalServerError() {
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, GENERIC_INTERNAL_ERROR);
+        detail.setType(ProblemTypes.INTERNAL);
+        detail.setTitle("Internal Server Error");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(detail);
     }
 }
