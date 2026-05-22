@@ -55,7 +55,7 @@ val serverPort = getPropertyFromYaml("server:\\s*port:\\s*(\\d+)")
 val apiDocsPaths = getPropertyFromYaml("api-docs:\\s*path:\\s*\"([^\"]+)\"")
 
 openApi {
-    apiDocsUrl.set("http://localhost:$serverPort/supplier$apiDocsPaths.yaml")
+    apiDocsUrl.set("http://localhost:$serverPort$apiDocsPaths.yaml")
     outputDir.set(file("${rootDir}/docs/api"))
     outputFileName.set("openapi.yaml")
     waitTimeInSeconds.set(15)
