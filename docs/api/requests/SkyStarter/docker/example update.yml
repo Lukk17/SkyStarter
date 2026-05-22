@@ -1,0 +1,30 @@
+info:
+  name: example update
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{protocol}}://{{baseUrl}}:{{port}}{{apiPath}}/:id"
+  params:
+    - name: id
+      value: 4f29d6e2-b0cb-49a7-b8f7-7b65a587142e
+      type: path
+  body:
+    type: json
+    data: "{\r\n    \"name\": \"Songo\"\r\n}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |
+        test("status is 200", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
