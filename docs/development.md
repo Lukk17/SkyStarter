@@ -28,8 +28,61 @@ those land.
 
 `test` runs unit tests in parallel JVM forks (`availableProcessors / 2`).
 `integrationTest` runs the contents of `**/integration/**` sequentially with
-shared Testcontainers. `check` runs both, the JaCoCo 0.80 INSTRUCTION gate,
-and `dependencyCheckAnalyze`.
+`forkEvery = 1` (fresh JVM per IT class -- prevents Axon lifecycle bean
+state leaking between contexts), backed by shared Testcontainers. `check`
+runs both, the JaCoCo 0.80 INSTRUCTION gate, and `dependencyCheckAnalyze`.
+
+Cold `./gradlew check` is about a minute on first run (NVD download) and
+under 30 seconds after.
+
+## OWASP dependency-check
+
+Per-subproject `dependencyCheckAnalyze` is wired into `check` and is fine
+under the configuration cache.
+
+`dependencyCheckAggregate` (cross-build aggregate report at
+`build/reports/dependency-check-report.html`) **must** be run with
+`--no-configuration-cache --no-parallel`:
+
+```bash
+./gradlew dependencyCheckAggregate --no-configuration-cache --no-parallel
+```
+
+The plugin captures `Project` references at task-action time, which is
+incompatible with Gradle 9's configuration cache. Issue is upstream; see
+https://github.com/dependency-check/dependency-check-gradle for status.
+
+Suppressions live in [`dependency-check-suppressions.xml`](../dependency-check-suppressions.xml).
+Every entry has an `until` sunset date -- when that date passes,
+`dependencyCheckAnalyze` will re-fail the build on those CVEs and the
+team must decide: upgrade, accept again with new rationale, or replace
+the dep. Don't bump sunsets without a written note in the Accepted
+findings table below.
+
+## buildHealth (dependency-analysis)
+
+```bash
+./gradlew buildHealth
+```
+
+Reports unused dependencies, misclassified scopes, etc. Non-fatal; build
+passes regardless. Treat findings as advice, not gospel -- the plugin
+generates a lot of false positives against Spring Boot starters (it can't
+see through autoconfiguration) and against bundle imports (it sees the
+bundle members individually, not as a logical unit). Review per case
+before changing build files.
+
+## OpenAPI spec generation
+
+```bash
+./gradlew :app:generateOpenApiDocs
+```
+
+Starts the app (under the `local` Spring profile) and writes
+`docs/api/openapi.yaml`. The task is **not** wired into `check` because
+it requires a running PostgreSQL + MongoDB (the app boots fully to serve
+the spec). Run it manually whenever the public API changes, then commit
+the regenerated `openapi.yaml`.
 
 Testcontainers reuse is on by default for `integrationTest`. Gradle's
 `environment("TESTCONTAINERS_REUSE_ENABLE", "true")` call sets that variable
@@ -63,6 +116,8 @@ encounter a finding the team has explicitly decided not to act on.
 | `StartupLogConfig`'s JWK probe uses a permissive `TrustManager` | The probe is a **diagnostic** connectivity check, not a security control. It runs once at startup against the configured JWK Set URI and reports `[OK]` / `[FAILED]` to the log. A self-signed Keycloak in local dev otherwise produces `PKIX path building failed` noise. | Don't reuse the permissive `SSLContext` anywhere else. Real JWT validation uses Spring Security's `JwtDecoder`, which has the real trust store. |
 | `version = "1"` in `@GetMapping` / `@PostMapping` matches URL `/v1/...` | Spring Framework 7's default `SemanticApiVersionParser` strips leading non-digits before parsing, so `"v1"` (from the URL segment) and `"1"` (from the annotation) both parse to `(1.0.0)` and match. | Don't add a custom `ApiVersionParser` to do the prefix stripping -- it's already free. |
 | Unit `test` task **excludes** `**/integration/**`; `integrationTest` runs them | `@SpringBootTest` ITs share Testcontainers; running them across parallel forks would race on the same Postgres / Mongo data. Sequential `integrationTest` with `maxParallelForks = 1` sidesteps that. | Don't add an IT to the default `test` task. Put it in the `integration` package and let `integrationTest` pick it up. |
+| `integrationTest` uses `forkEvery = 1` (fresh JVM per IT class) | When two `@SpringBootTest` ITs run in one JVM the second context boot fails with `Failed to start bean 'axon-start-lifecycle-handler-N'` because Axon's lifecycle bean doesn't tolerate being restarted on a polluted Spring context. Spawning a fresh JVM per IT class costs ~5-10s of Spring boot per class but Testcontainers reuse means the containers carry over -- so the actual wall-clock penalty is small. | If you increase the IT count by 10x, consider `@DirtiesContext(classMode = AFTER_CLASS)` and a higher `forkEvery` instead, but profile both first. |
+| `dependency-check-suppressions.xml` carries 17 CVEs with `until="2026-08-22Z"` | Spring Boot 4.0.6 + Axon 5.1.0 transitive deps tripped `failBuildOnCVSS = 7.0` immediately. The sunset gives a 3-month window to upgrade, pin, or replace -- not "ignore forever". | When sunset hits, **don't bump the date** without addressing the root cause. Each unaddressed entry deserves a paragraph in this table explaining why it's accepted longer. |
 | Spring Modulith BOM is **not** imported | Module boundaries here are Gradle subprojects -- compile-time, JAR-level. Modulith's package-level test-time enforcement would be strictly weaker. | Don't re-add the BOM. If you need module-style features within one subproject, propose flattening to a single module first. |
 | ArchUnit pinned to **1.4.2**, not 1.4.0 | 1.4.0's bundled ASM doesn't recognise Java 25 bytecode -- it silently parses zero classes from the import path and every rule fails with "failed to check any classes". 1.4.2 has the updated ASM. | If you bump back to 1.4.0 (or some 1.5.x with the same regression), `HexagonalArchitectureTest` will silently green-light everything. Check `CLASSES.size()` before trusting a passing run. |
 | `HexagonalArchitectureTest` uses **explicit `importPaths(Path...)`**, not `@AnalyzeClasses` | Gradle's test launcher uses a `Class-Path` manifest jar (to avoid Windows command-line length limits). The launched JVM has the launcher on `java.class.path` and the real entries inside its manifest -- ArchUnit's default classpath traversal doesn't find them. Explicit paths from `project.root.dir` system property are deterministic. | Don't switch to `@AnalyzeClasses(packages = ...)`. It'll find zero classes and produce green tests that prove nothing. |
