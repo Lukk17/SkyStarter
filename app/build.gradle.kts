@@ -81,6 +81,10 @@ tasks.named("generateOpenApiDocs") {
 }
 tasks.named("forkedSpringBootRun") {
     notCompatibleWithConfigurationCache("JavaExecFork plugin captures Task references")
+    // The plugin invokes the forked JVM with subproject jars on its
+    // classpath but doesn't declare them as inputs, so Gradle 9 warns
+    // about implicit dependencies. Wire the jars explicitly.
+    dependsOn(":domain:jar", ":service:jar", ":infrastructure:jar")
 }
 tasks.named("forkedSpringBootStop") {
     notCompatibleWithConfigurationCache("JavaExecFork plugin captures Task references")

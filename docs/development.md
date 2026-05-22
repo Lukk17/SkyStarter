@@ -42,19 +42,24 @@ The OWASP plugin is applied at the root project only. Running the
 aggregate task covers every subproject in one pass:
 
 ```bash
-./gradlew dependencyCheckAggregate --no-parallel
+./gradlew dependencyCheckAggregate
 ```
 
-`--no-parallel` is required: the plugin resolves subproject
-configurations from the aggregate task at execution time, which Gradle 9
-rejects under `org.gradle.parallel=true` ("Resolution of the
-configuration ':app:annotationProcessor' was attempted without an
-exclusive lock"). The task itself is marked
-`notCompatibleWithConfigurationCache(...)` so the config cache is
-quietly discarded for it and the rest of the build cache keeps working.
+No flags required. `gradle.properties` keeps `org.gradle.parallel=false`
+because the plugin resolves subproject configurations at execution
+time, which Gradle 9 rejects under parallel project execution
+("Resolution of the configuration was attempted without an exclusive
+lock"). If you want to opt into parallel for a specific run, pass
+`--parallel` on the CLI -- but not when running this task.
 
-The task is **not** wired into `check` -- the parallel-execution clash
-above means it would slow every build down. Treat it as a CI-side gate
+The aggregate task (and `dependencyCheckAnalyze`) is marked
+`notCompatibleWithConfigurationCache(...)`. The build still works, but
+each invocation reports 10-15 "configuration cache problems" in the
+log -- those are informational under `problems=warn`, not failures.
+BUILD SUCCESSFUL is the truth; the cache just isn't reused for those
+specific tasks.
+
+The task is **not** wired into `check` -- treat it as a CI-side gate
 or a release-time check.
 
 Suppressions live in [`dependency-check-suppressions.xml`](../dependency-check-suppressions.xml).
