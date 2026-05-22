@@ -63,3 +63,11 @@ openApi {
         args.set(listOf("--spring.profiles.active=local"))
     }
 }
+
+// Refresh docs/api/openapi.yaml on every ./gradlew build. The plugin's task
+// forks a Spring Boot process, hits /openapi/v3/api-docs.yaml, writes the
+// spec to outputDir, and shuts the process down. Requires PostgreSQL,
+// MongoDB, and (optionally) Keycloak reachable per docs/running.md.
+tasks.named("build") {
+    dependsOn("generateOpenApiDocs")
+}

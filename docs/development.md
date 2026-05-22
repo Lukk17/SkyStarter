@@ -74,15 +74,24 @@ before changing build files.
 
 ## OpenAPI spec generation
 
+`docs/api/openapi.yaml` is regenerated on every `./gradlew build`. The
+springdoc plugin's task forks a Spring Boot process under the `local`
+profile, hits `/openapi/v3/api-docs.yaml`, writes the spec to disk,
+and shuts the process down -- no manual invocation needed.
+
 ```bash
-./gradlew :app:generateOpenApiDocs
+./gradlew :app:generateOpenApiDocs    # standalone run, same effect
 ```
 
-Starts the app (under the `local` Spring profile) and writes
-`docs/api/openapi.yaml`. The task is **not** wired into `check` because
-it requires a running PostgreSQL + MongoDB (the app boots fully to serve
-the spec). Run it manually whenever the public API changes, then commit
-the regenerated `openapi.yaml`.
+Prerequisite: PostgreSQL + MongoDB reachable when `build` runs (per
+[`docs/running.md`](running.md) -- the `local` profile points at
+`localhost:5432` and `localhost:27017`). Without them the forked
+process fails to start and the build fails. CI containers running
+the build need to provision those services first.
+
+Commit the regenerated `openapi.yaml` whenever the public API
+changes -- the file is the source of truth downstream consumers
+read for client generation.
 
 Testcontainers reuse is on by default for `integrationTest`. Gradle's
 `environment("TESTCONTAINERS_REUSE_ENABLE", "true")` call sets that variable
