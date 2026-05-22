@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
+import org.axonframework.messaging.queryhandling.QueryExecutionException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class GlobalExceptionHandlerTest {
@@ -81,6 +83,47 @@ class GlobalExceptionHandlerTest {
     @Test
     void uncaught_returns500() {
         ResponseEntity<ProblemDetail> response = handler.handleException(new RuntimeException("x"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.INTERNAL);
+    }
+
+    @Test
+    void badJson_returns400() {
+        ResponseEntity<ProblemDetail> response =
+                handler.handleBadJson(new HttpMessageNotReadableException("malformed", null, null));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.BAD_JSON);
+        assertThat(response.getBody().getDetail()).isEqualTo("Malformed JSON request body.");
+    }
+
+    @Test
+    void queryExecution_unwrapsNotFound() {
+        UUID id = UUID.randomUUID();
+        QueryExecutionException ex = new QueryExecutionException("wrapped", new SkyNotFoundException(id));
+
+        ResponseEntity<ProblemDetail> response = handler.handleQueryExecutionException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.NOT_FOUND);
+    }
+
+    @Test
+    void queryExecution_unwrapsIllegalArgument() {
+        QueryExecutionException ex = new QueryExecutionException("wrapped", new IllegalArgumentException("boom"));
+
+        ResponseEntity<ProblemDetail> response = handler.handleQueryExecutionException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.ILLEGAL_ARGUMENT);
+    }
+
+    @Test
+    void queryExecution_unknownCause_returns500() {
+        QueryExecutionException ex = new QueryExecutionException("wrapped", new RuntimeException("kaboom"));
+
+        ResponseEntity<ProblemDetail> response = handler.handleQueryExecutionException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.INTERNAL);
