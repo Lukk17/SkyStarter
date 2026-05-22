@@ -85,23 +85,35 @@ before changing build files.
 ## OpenAPI spec generation
 
 `docs/api/openapi.yaml` is regenerated on every `./gradlew build`. The
-springdoc plugin's task forks a Spring Boot process under the `local`
-profile, hits `/openapi/v3/api-docs.yaml`, writes the spec to disk,
-and shuts the process down -- no manual invocation needed.
+springdoc plugin forks a Spring Boot process under the `local` profile,
+hits `/openapi/v3/api-docs.yaml`, writes the spec to disk, and shuts
+the process down.
 
 ```bash
 ./gradlew :app:generateOpenApiDocs    # standalone run, same effect
 ```
 
-Prerequisite: PostgreSQL + MongoDB reachable when `build` runs (per
-[`docs/running.md`](running.md) -- the `local` profile points at
-`localhost:5432` and `localhost:27017`). Without them the forked
-process fails to start and the build fails. CI containers running
-the build need to provision those services first.
+The `local` profile activates `LocalSecurityConfig` which provides an
+offline JWT decoder (no live Keycloak required) and permits `/openapi/**`
+without auth.
 
-Commit the regenerated `openapi.yaml` whenever the public API
-changes -- the file is the source of truth downstream consumers
-read for client generation.
+**Prerequisites** (per [`docs/running.md`](running.md)):
+
+- PostgreSQL at `localhost:5432` (db `starter`, user `postgres`, password `local`)
+- MongoDB at `localhost:27017` (db `starter`)
+- Docker is **not** required for spec generation -- the fork talks to your
+  actual local databases, not Testcontainers
+
+Without those services running, the forked app fails at Spring context
+refresh and the build fails. Skip with `./gradlew build -x generateOpenApiDocs`
+when you don't have the DBs up.
+
+Commit the regenerated `openapi.yaml` whenever the public API changes --
+the file is the source of truth downstream consumers read for client
+generation.
+
+If the fork swallows its output and you can't tell why it's failing,
+check `app/build/tmp/forkedSpringBootRun/stdout.log` and `stderr.log`.
 
 Testcontainers reuse is on by default for `integrationTest`. Gradle's
 `environment("TESTCONTAINERS_REUSE_ENABLE", "true")` call sets that variable

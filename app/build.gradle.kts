@@ -58,8 +58,12 @@ openApi {
     apiDocsUrl.set("http://localhost:$serverPort$apiDocsPaths.yaml")
     outputDir.set(file("${rootDir}/docs/api"))
     outputFileName.set("openapi.yaml")
-    waitTimeInSeconds.set(15)
+    waitTimeInSeconds.set(120)
     customBootRun {
+        // The `local` profile activates LocalSecurityConfig, which provides an
+        // offline JWT decoder (no live Keycloak required) and permits
+        // /openapi/** without auth. Real local PostgreSQL + MongoDB are
+        // required at the default ports -- see docs/running.md prereqs.
         args.set(listOf("--spring.profiles.active=local"))
     }
 }
@@ -84,6 +88,13 @@ val javaPluginExt = extensions.getByType<JavaPluginExtension>()
 
 tasks.named<com.github.psxpaul.task.JavaExecFork>("forkedSpringBootRun") {
     notCompatibleWithConfigurationCache("JavaExecFork plugin captures Task references")
+    standardOutput.set(layout.buildDirectory.file("tmp/forkedSpringBootRun/stdout.log"))
+    errorOutput.set(layout.buildDirectory.file("tmp/forkedSpringBootRun/stderr.log"))
+    // Block until the app is listening on the configured port before
+    // returning -- otherwise generateOpenApiDocs starts polling a port
+    // that isn't open yet and times out before the app finishes booting.
+    waitForPort = serverPort.toInt()
+    timeout = 300
     // Upstream plugin bug #1: forkedSpringBootRun uses BootRun's classpath
     // (which references subproject jars) but doesn't declare those jar
     // tasks as inputs. Gradle 9 warns about implicit dependencies. Wire
