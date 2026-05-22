@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!--
+        Baseline suppressions for SkyStarter on Spring Boot 4.0.6 / Axon 5.1.0.
+
+        Each CVE here was flagged by `./gradlew dependencyCheckAggregate
+        --no-configuration-cache --no-parallel` at CVSS >= 7.0. They live in
+        transitive dependencies of Spring Boot / Axon that we don't pin
+        directly. The fix path for each one is either:
+        - Upgrade Spring Boot when a patch release ships
+        - Pin the transitive dep ourselves via constraints
+        - Replace the dep entirely
+
+        The `until` date on each entry is the sunset: dependency-check will
+        re-fail the build on that date if the CVE is still present, forcing
+        a review. Bump the date only with a written rationale in
+        docs/development.md "Accepted findings".
+    -->
+
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2019-3826</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2022-31691</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-29181</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-39882</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-39883</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-41238</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-41239</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-41240</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-41284</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-41293</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-42154</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-42198</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-42498</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-43512</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-43513</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-43514</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>SkyStarter baseline 2026-05-22. Review on sunset.</notes>
+        <cve>CVE-2026-43515</cve>
+    </suppress>
+
+</suppressions>

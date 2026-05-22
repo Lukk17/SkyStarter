@@ -191,6 +191,7 @@ dependencyCheck {
     formats = listOf("HTML", "JSON")
     failBuildOnCVSS = 7.0f
     analyzers.assemblyEnabled = false // Skip .NET analysis (not needed for Java)
+    suppressionFile = "${rootDir}/dependency-check-suppressions.xml"
 }
 
 fun disableSpotlessAutoTasks() {
