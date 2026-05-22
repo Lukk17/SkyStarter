@@ -62,7 +62,10 @@ Strict inward dependency rule: `app → infrastructure → service → domain`. 
 #    http://localhost:7777/openapi/swagger-ui.html
 
 # 4. Or run the full automated test suite (requires Docker for Testcontainers):
-./gradlew clean build
+./gradlew check
+# Unit tests run in parallel forks; integration tests (under `**/integration/**`)
+# run sequentially with Testcontainers container reuse enabled automatically
+# on the forked test JVM — no shell or home-dir setup required.
 ```
 
 For details on every step (including the test JWT for the `local` profile, Docker build, and IntelliJ setup), see [`docs/running.md`](docs/running.md). For a hands-on `curl`-driven walkthrough of the CRUD lifecycle plus inspection of the event store and projection, see [`docs/testing-strategy.md`](docs/testing-strategy.md).

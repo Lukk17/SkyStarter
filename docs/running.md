@@ -8,7 +8,7 @@
 | **PostgreSQL** | 15+ | Event store. Default expected at `localhost:5432`, db `starter`, user `postgres`, password `local`. |
 | **MongoDB** | 7+ | Read-side projection store. Default expected at `localhost:27017`, db `starter`. |
 | **Keycloak** | 26+ (optional for `local` profile) | Bearer JWT authority. The `local` profile includes an offline JWT decoder so a live Keycloak isn't required for the happy path. |
-| **Docker** | required for the integration test (`./gradlew :app:test`) | Testcontainers spins up its own PostgreSQL + MongoDB on ephemeral ports; your local DBs do **not** conflict. |
+| **Docker** | required for `./gradlew :app:integrationTest` (also picked up by `./gradlew check`) | Testcontainers spins up its own PostgreSQL + MongoDB on ephemeral ports; your local DBs do **not** conflict. The Gradle task sets `TESTCONTAINERS_REUSE_ENABLE=true` on the forked test JVM only, so containers persist across runs and the second IT loop is seconds, not ~30. No shell or home-dir setup needed. |
 
 ## JDK setup
 

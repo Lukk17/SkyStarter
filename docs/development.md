@@ -31,18 +31,23 @@ those land.
 shared Testcontainers. `check` runs both, the JaCoCo 0.80 INSTRUCTION gate,
 and `dependencyCheckAnalyze`.
 
-Testcontainers reuse is enabled by default for `integrationTest` -- the Gradle
-task passes `TESTCONTAINERS_REUSE_ENABLE=true` as an env var to the forked JVM
-and the container beans call `.withReuse(true)`, so the Postgres / Mongo
-containers persist across runs and the second-and-onwards IT loop is a few
-seconds instead of ~30. To opt out, override with the same env var set to
-`false` in your shell, or set `testcontainers.reuse.enable=false` in
-`~/.testcontainers.properties`.
+Testcontainers reuse is on by default for `integrationTest`. Gradle's
+`environment("TESTCONTAINERS_REUSE_ENABLE", "true")` call sets that variable
+**only** on the forked test JVM process -- it never touches your shell, your
+OS, or `~/.testcontainers.properties`. When the test JVM exits, the variable
+is gone. The container beans call `.withReuse(true)`, so Postgres / Mongo
+persist across runs and the second IT loop is seconds, not ~30.
 
-Note: Testcontainers only reads the reuse flag from the env var or from
-`~/.testcontainers.properties` -- system properties (`-Dtestcontainers.reuse.enable`)
-are explicitly *not* read for this flag. See
-[the docs](https://java.testcontainers.org/features/reuse).
+The three things people mix up here:
+
+- `TESTCONTAINERS_REUSE_ENABLE` **environment variable** -- the route we use.
+  Scope: the single process Gradle sets it on. Honored by Testcontainers.
+- `~/.testcontainers.properties` **user-home file** -- machine-wide,
+  per-developer. Honored by Testcontainers. Use this only if you want to
+  override the default for every project on your machine.
+- `-Dtestcontainers.reuse.enable=true` **JVM `-D` flag** -- looks like the
+  natural Gradle-side choice. **Testcontainers does not read it** for the
+  reuse flag. See https://java.testcontainers.org/features/reuse.
 
 ## Accepted findings — do not "fix"
 
@@ -67,7 +72,7 @@ encounter a finding the team has explicitly decided not to act on.
 | `apiPath` is **inlined** as `/v1/starter` in every Bruno request URL | One API, one path. Variable-extracting it adds indirection without enabling any deployment. | If a future version (`/v2/skies`) lands, update the literals in the collection -- still cleaner than juggling a path variable. |
 | Spring Boot 4 native API versioning declares `{version}` as a URI variable in `@RequestMapping`, ignored by methods | Spring requires the version segment to be present as a URI variable in the controller mapping (`/{version}/starter`), even though the version routing strategy extracts segment 0 independently. Methods don't bind `{version}` -- they only bind `{skyId}`. | Don't try to remove `{version}` from `@RequestMapping`. Spring's `RequestMappingInfo` builder enforces it. |
 | `gradle.properties` sets `org.gradle.configuration-cache.problems=warn` (not `fail`) | Some plugins (notably OWASP `dependency-check`, `dependency-analysis`) emit configuration-cache problems we can't fix upstream. Warning keeps the build moving while still surfacing the issues. | If a *first-party* configuration-cache problem appears in our own build script, fix it. Don't promote everything to `fail` without auditing the plugin tree first. |
-| `integrationTest` enables Testcontainers reuse via **env var** (`environment(...)`), not system property (`systemProperty(...)`) | Testcontainers reads the reuse flag from exactly two sources: the `TESTCONTAINERS_REUSE_ENABLE` env var and `~/.testcontainers.properties`. System properties are explicitly not honoured for this flag (docs: https://java.testcontainers.org/features/reuse). Setting `-Dtestcontainers.reuse.enable=true` looks like it should work and silently does nothing. | If reuse stops kicking in, check that the env var made it through Gradle's `environment(...)` into the forked JVM. Don't "fix" it back to `systemProperty(...)`. |
+| `integrationTest` enables Testcontainers reuse via Gradle's `environment(...)` call, not `systemProperty(...)` | Testcontainers reads the reuse flag from exactly two places: the `TESTCONTAINERS_REUSE_ENABLE` env var (process-scoped) or the user-home file `~/.testcontainers.properties` (machine-wide). The `-Dtestcontainers.reuse.enable=true` JVM flag is **not** honored even though it looks like it should be -- the call silently does nothing. Docs: https://java.testcontainers.org/features/reuse. | If reuse stops kicking in, check that `TESTCONTAINERS_REUSE_ENABLE=true` made it through Gradle's `environment(...)` into the forked test JVM. Don't "fix" it back to `systemProperty(...)`. |
 
 ## OpenSpec lifecycle
 
