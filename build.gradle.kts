@@ -129,15 +129,48 @@ subprojects {
         }
     }
 
-    tasks.withType<Test>().configureEach {
+    // Unit tests run in parallel JVM forks; integration tests (*IT) run
+    // sequentially in their own task because Testcontainers + @SpringBootTest
+    // contexts don't tolerate cross-fork data races on shared containers.
+    // Coverage report and gate consume the combined exec data from both.
+    val sourceSets = extensions.getByType(SourceSetContainer::class.java)
+    val integrationTest = tasks.register<Test>("integrationTest") {
+        description = "Runs *IT integration tests sequentially."
+        group = "verification"
+        useJUnitPlatform()
+        testClassesDirs = sourceSets["test"].output.classesDirs
+        classpath = sourceSets["test"].runtimeClasspath
+        include("**/*IT.class")
+        shouldRunAfter("test")
+        maxParallelForks = 1
+    }
+
+    tasks.named<Test>("test") {
+        exclude("**/*IT.class")
+        maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
         finalizedBy(tasks.named("jacocoTestReport"))
     }
 
-    plugins.withId("java") {
-        tasks.named("check") {
-            dependsOn("jacocoTestCoverageVerification")
-            dependsOn("dependencyCheckAnalyze")
-        }
+    tasks.named<JacocoReport>("jacocoTestReport") {
+        dependsOn("test", integrationTest)
+        executionData(
+            fileTree(layout.buildDirectory)
+                .include("jacoco/test.exec", "jacoco/integrationTest.exec")
+        )
+    }
+
+    tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+        dependsOn("test", integrationTest)
+        executionData(
+            fileTree(layout.buildDirectory)
+                .include("jacoco/test.exec", "jacoco/integrationTest.exec")
+        )
+    }
+
+    tasks.named("check") {
+        dependsOn(integrationTest)
+        dependsOn("jacocoTestCoverageVerification")
+        dependsOn("dependencyCheckAnalyze")
     }
 }
 
