@@ -39,3 +39,6 @@ out/
 
 ### Per-machine agent permission grants (do not commit)
 .claude/settings.local.json
+
+### JVM heap dumps (transient debug output)
+*.hprof
