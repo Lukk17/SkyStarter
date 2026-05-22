@@ -1,5 +1,7 @@
-package com.lukksarna.skystarter.app;
+package com.lukksarna.skystarter.app.integration;
 
+import com.lukksarna.skystarter.app.TestSecurityConfig;
+import com.lukksarna.skystarter.app.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,7 +16,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Companion test to {@link SkyEndToEndIT} — keeps the security filter chain
+ * Companion test to {@link SkyEndToEndTest} — keeps the security filter chain
  * active so unauthenticated access is rejected. Spring Security 7 returns 403
  * (Forbidden) where Spring Security 6 returned 401 for resource-server-style
  * unauthenticated GETs without an entry point configured; the test accepts
@@ -27,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class SecurityFilterIT {
+class SecurityFilterTest {
 
     @Autowired
     private MockMvc mvc;

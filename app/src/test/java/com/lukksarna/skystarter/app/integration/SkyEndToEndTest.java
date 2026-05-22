@@ -1,5 +1,7 @@
-package com.lukksarna.skystarter.app;
+package com.lukksarna.skystarter.app.integration;
 
+import com.lukksarna.skystarter.app.TestSecurityConfig;
+import com.lukksarna.skystarter.app.TestcontainersConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Liquibase, Axon 5 entity model, projection convergence (Awaitility).
  *
  * Spring filters are disabled (`addFilters = false`) so the test focuses on
- * application logic. Auth filtering is exercised by SecurityFilterIT.
+ * application logic. Auth filtering is exercised by SecurityFilterTest.
  *
  * Spring 7 occasionally completes async controllers synchronously (already-
  * completed futures, exception paths). The {@link #performMaybeAsync} helper
@@ -45,7 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class SkyEndToEndIT {
+class SkyEndToEndTest {
 
     @Autowired
     private MockMvc mvc;

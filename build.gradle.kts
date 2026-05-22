@@ -135,18 +135,18 @@ subprojects {
     // Coverage report and gate consume the combined exec data from both.
     val sourceSets = extensions.getByType(SourceSetContainer::class.java)
     val integrationTest = tasks.register<Test>("integrationTest") {
-        description = "Runs *IT integration tests sequentially."
+        description = "Runs integration tests sequentially (classes under ..integration..)."
         group = "verification"
         useJUnitPlatform()
         testClassesDirs = sourceSets["test"].output.classesDirs
         classpath = sourceSets["test"].runtimeClasspath
-        include("**/*IT.class")
+        include("**/integration/**/*.class")
         shouldRunAfter("test")
         maxParallelForks = 1
     }
 
     tasks.named<Test>("test") {
-        exclude("**/*IT.class")
+        exclude("**/integration/**/*.class")
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
         systemProperty("project.root.dir", rootProject.projectDir.absolutePath)
         finalizedBy(tasks.named("jacocoTestReport"))
