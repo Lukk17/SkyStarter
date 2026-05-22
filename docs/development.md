@@ -31,12 +31,11 @@ those land.
 shared Testcontainers. `check` runs both, the JaCoCo 0.80 INSTRUCTION gate,
 and `dependencyCheckAnalyze`.
 
-To enable Testcontainers reuse across runs (huge speedup for the
-integration suite), add this to `~/.testcontainers.properties`:
-
-```properties
-testcontainers.reuse.enable=true
-```
+Testcontainers reuse is enabled by default for `integrationTest` -- the Gradle
+task passes `-Dtestcontainers.reuse.enable=true` and the container beans call
+`.withReuse(true)`, so the Postgres / Mongo containers persist across runs and
+the second-and-onwards IT loop is a few seconds instead of ~30. Override
+per-machine in `~/.testcontainers.properties` if needed.
 
 ## Accepted findings — do not "fix"
 

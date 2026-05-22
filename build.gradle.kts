@@ -143,6 +143,10 @@ subprojects {
         include("**/integration/**/*.class")
         shouldRunAfter("test")
         maxParallelForks = 1
+        // Project-default Testcontainers reuse so each fork shares the Postgres /
+        // Mongo containers across runs. Effective only when the container code
+        // calls .withReuse(true), which TestcontainersConfiguration does.
+        systemProperty("testcontainers.reuse.enable", "true")
     }
 
     tasks.named<Test>("test") {
