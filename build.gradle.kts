@@ -44,6 +44,7 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "jacoco")
     apply(plugin = "org.owasp.dependencycheck")
+    apply(plugin = "com.autonomousapps.dependency-analysis")
 
     group = "com.revdevs.pharmacy"
     version = "0.0.1-SNAPSHOT"
@@ -143,6 +144,12 @@ subprojects {
         include("**/integration/**/*.class")
         shouldRunAfter("test")
         maxParallelForks = 1
+        // Fresh JVM per IT class. @SpringBootTest contexts share an Axon
+        // lifecycle bean ("axon-start-lifecycle-handler-N") that occasionally
+        // fails to restart cleanly when a second context boots in the same
+        // JVM. Isolation per class costs ~5-10s of Spring boot but keeps
+        // Testcontainers reuse intact (containers persist across forks).
+        forkEvery = 1
         // Project-default Testcontainers reuse: the env var is one of the two
         // sources Testcontainers checks for the reuse flag (the other is
         // ~/.testcontainers.properties). System properties are NOT read for
