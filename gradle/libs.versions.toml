@@ -99,7 +99,6 @@ liquibase-core = { module = "org.liquibase:liquibase-core" }
 
 lombok = { module = "org.projectlombok:lombok" }
 slf4j = { module = "org.slf4j:slf4j-api" }
-gson = { module = "com.google.code.gson:gson" }
 
 mapstruct = { module = "org.mapstruct:mapstruct", version.ref = "mapstruct" }
 mapstruct-processor = { module = "org.mapstruct:mapstruct-processor", version.ref = "mapstruct" }

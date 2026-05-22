@@ -37,7 +37,6 @@ dependencies {
     implementation(libs.mapstruct)
     annotationProcessor(libs.mapstruct.processor)
     annotationProcessor(libs.lombok.mapstruct.binding)
-    implementation(libs.gson)
 
     implementation(libs.axon.spring.boot.starter)
     runtimeOnly(libs.postgres)

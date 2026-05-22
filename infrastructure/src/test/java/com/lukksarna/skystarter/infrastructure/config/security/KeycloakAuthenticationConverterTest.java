@@ -55,20 +55,67 @@ class KeycloakAuthenticationConverterTest {
 
     @Test
     void parseOfflineToken_decodesHeaderAndClaims() {
-        // header: {"alg":"none","typ":"JWT"}
-        String header = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
-                "{\"alg\":\"none\",\"typ\":\"JWT\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         long iat = Instant.now().getEpochSecond();
-        String payload = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(
-                ("{\"sub\":\"user\",\"iat\":" + iat + ",\"exp\":" + (iat + 60) + "}")
-                        .getBytes(java.nio.charset.StandardCharsets.UTF_8));
-        String sig = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString("sig".getBytes());
-        String token = header + "." + payload + "." + sig;
+        String token = buildOfflineToken(
+                "{\"alg\":\"none\",\"typ\":\"JWT\"}",
+                "{\"sub\":\"user\",\"iat\":" + iat + ",\"exp\":" + (iat + 60) + "}");
 
         Jwt jwt = KeycloakAuthenticationConverter.parseOfflineToken(token);
 
         assertThat(jwt.getSubject()).isEqualTo("user");
         assertThat(jwt.getIssuedAt()).isNotNull();
         assertThat(jwt.getExpiresAt()).isNotNull();
+    }
+
+    @Test
+    void parseOfflineToken_preservesNestedClaimsAsIs() {
+        String token = buildOfflineToken(
+                "{\"alg\":\"none\"}",
+                "{\"sub\":\"u\",\"realm_access\":{\"roles\":[\"ROLE_USER\"]}}");
+
+        Jwt jwt = KeycloakAuthenticationConverter.parseOfflineToken(token);
+
+        assertThat(jwt.<Map<String, Object>>getClaim("realm_access").get("roles"))
+                .isEqualTo(List.of("ROLE_USER"));
+    }
+
+    @Test
+    void converter_realmAccessRolesNotAList_returnsNoAuthorities() {
+        JwtAuthenticationConverter converter = KeycloakAuthenticationConverter.getJwtAuthenticationConverter();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("u")
+                .claim("realm_access", Map.of("roles", "ROLE_USER"))
+                .build();
+
+        AbstractAuthenticationToken auth = converter.convert(jwt);
+
+        assertThat(auth.getAuthorities())
+                .filteredOn(SimpleGrantedAuthority.class::isInstance)
+                .isEmpty();
+    }
+
+    @Test
+    void converter_dropsNonStringEntriesInRolesList() {
+        JwtAuthenticationConverter converter = KeycloakAuthenticationConverter.getJwtAuthenticationConverter();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("u")
+                .claim("realm_access", Map.of("roles", List.of("ROLE_USER", 42)))
+                .build();
+
+        AbstractAuthenticationToken auth = converter.convert(jwt);
+
+        assertThat(auth.getAuthorities())
+                .filteredOn(SimpleGrantedAuthority.class::isInstance)
+                .extracting(Object::toString)
+                .containsExactly("ROLE_USER");
+    }
+
+    private static String buildOfflineToken(String headerJson, String payloadJson) {
+        java.util.Base64.Encoder enc = java.util.Base64.getUrlEncoder().withoutPadding();
+        return enc.encodeToString(headerJson.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                + "." + enc.encodeToString(payloadJson.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                + "." + enc.encodeToString("sig".getBytes());
     }
 }

@@ -1,7 +1,13 @@
 package com.lukksarna.skystarter.infrastructure.config.security;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -9,12 +15,9 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.util.*;
-import java.util.stream.Collectors;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class KeycloakAuthenticationConverter {
@@ -22,10 +25,10 @@ public class KeycloakAuthenticationConverter {
     private static final String REALM_ACCESS_CLAIM = "realm_access";
     private static final String ROLES_CLAIM = "roles";
 
-    private static final Gson GSON = new Gson();
     private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
-    private static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {
-    }.getType();
+    private static final ObjectMapper JSON_MAPPER = JsonMapper.builder().build();
+    private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
+    };
 
     public static JwtAuthenticationConverter getJwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
@@ -50,8 +53,8 @@ public class KeycloakAuthenticationConverter {
             String headerPayload = new String(URL_DECODER.decode(parts[0]), StandardCharsets.UTF_8);
             String payload = new String(URL_DECODER.decode(parts[1]), StandardCharsets.UTF_8);
 
-            Map<String, Object> headers = GSON.fromJson(headerPayload, MAP_TYPE);
-            Map<String, Object> claims = GSON.fromJson(payload, MAP_TYPE);
+            Map<String, Object> headers = JSON_MAPPER.readValue(headerPayload, MAP_TYPE);
+            Map<String, Object> claims = JSON_MAPPER.readValue(payload, MAP_TYPE);
 
             Jwt.Builder jwtBuilder = Jwt.withTokenValue(token);
 
@@ -67,12 +70,8 @@ public class KeycloakAuthenticationConverter {
 
     private static void parseTokenClaims(Map<String, Object> claims, Jwt.Builder jwtBuilder) {
         claims.forEach((key, value) -> {
-            if (isDateClaim(key)) {
-                if (value instanceof Double d) {
-                    jwtBuilder.claim(key, Instant.ofEpochSecond(d.longValue()));
-                } else {
-                    jwtBuilder.claim(key, value);
-                }
+            if (isDateClaim(key) && value instanceof Number number) {
+                jwtBuilder.claim(key, Instant.ofEpochSecond(number.longValue()));
             } else {
                 jwtBuilder.claim(key, value);
             }
