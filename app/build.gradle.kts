@@ -13,6 +13,9 @@ dependencies {
     implementation(libs.postgres)
     implementation(libs.axon.spring.boot.starter)
 
+    runtimeOnly(libs.micrometer.registry.prometheus)
+    runtimeOnly(libs.logstash.logback.encoder)
+
     developmentOnly(libs.spring.boot.devtools)
 
     testImplementation(libs.bundles.spring.testing)

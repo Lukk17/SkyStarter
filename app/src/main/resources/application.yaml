@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: sky-starter
+  main:
+    banner-mode: log
   #  As this is a PRIMARY datasource-Axon's Event Store will use this.
   datasource:
     url: "jdbc:postgresql://localhost:5432/starter"
@@ -61,7 +63,7 @@ management:
     web:
       base-path: "/actuator"
       exposure:
-        include: "health,info,readiness,liveness"
+        include: "health,info,readiness,liveness,prometheus,metrics"
 
 springdoc:
   swagger-ui:
@@ -105,6 +107,3 @@ logging:
     # to show SQL and NOSQL queries
 #    org.hibernate.SQL: DEBUG # this will show Axon pulling logs every 1 sec
     org.springframework.data.mongodb.core.MongoTemplate: DEBUG
-
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%-5level) %clr(%.5t){magenta} %clr(%logger{36}){cyan} %clr([SkyStarter]){blue} : %msg%n"

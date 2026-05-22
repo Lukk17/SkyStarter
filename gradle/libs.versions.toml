@@ -52,6 +52,10 @@ testcontainers = "2.0.5"
 # from wiring; only 5.x targets Boot 4 cleanly.
 axonBom = "5.1.0"
 
+# https://mvnrepository.com/artifact/net.logstash.logback/logstash-logback-encoder/versions
+# Not in Spring Boot BOM. 8.x targets logback 1.5+, which Boot 4 ships.
+logstashLogbackEncoder = "8.0"
+
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
 springdoc-openapi = { id = "org.springdoc.openapi-gradle-plugin", version.ref = "springdocPlugin" }
@@ -130,6 +134,12 @@ axon-spring-boot-starter = { module = "org.axonframework.extensions.spring:axon-
 axon-modelling = { module = "org.axonframework:axon-modelling" }
 axon-eventsourcing = { module = "org.axonframework:axon-eventsourcing" }
 axon-test = { module = "org.axonframework:axon-test" }
+
+# Observability — versions resolved from spring-boot-bom unless noted.
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+micrometer-tracing-bridge-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstashLogbackEncoder" }
 
 [bundles]
 testing-base = ["junit-jupiter", "mockito-core", "mockito-junit", "assertj-core", "hamcrest", "junit-platform-launcher"]
