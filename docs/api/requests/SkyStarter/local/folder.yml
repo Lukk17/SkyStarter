@@ -1,0 +1,9 @@
+info:
+  name: local
+  type: folder
+  seq: 1
+
+request:
+  auth:
+    type: bearer
+    token: "{{mockToken}}"
