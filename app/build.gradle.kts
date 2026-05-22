@@ -14,6 +14,8 @@ dependencies {
     implementation(libs.axon.spring.boot.starter)
 
     runtimeOnly(libs.micrometer.registry.prometheus)
+    runtimeOnly(libs.micrometer.tracing.bridge.otel)
+    runtimeOnly(libs.opentelemetry.exporter.otlp)
     runtimeOnly(libs.logstash.logback.encoder)
 
     developmentOnly(libs.spring.boot.devtools)

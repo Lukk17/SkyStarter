@@ -64,6 +64,12 @@ management:
       base-path: "/actuator"
       exposure:
         include: "health,info,readiness,liveness,prometheus,metrics"
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTLP_TRACING_ENDPOINT:}
 
 springdoc:
   swagger-ui:

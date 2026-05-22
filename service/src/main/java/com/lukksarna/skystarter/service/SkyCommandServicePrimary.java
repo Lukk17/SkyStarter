@@ -4,11 +4,12 @@ import com.lukksarna.skystarter.domain.command.CreateSkyCommand;
 import com.lukksarna.skystarter.domain.command.DeleteSkyCommand;
 import com.lukksarna.skystarter.domain.command.UpdateSkyCommand;
 import com.lukksarna.skystarter.domain.port.SkyCommandService;
-import lombok.RequiredArgsConstructor;
-import org.axonframework.messaging.commandhandling.gateway.CommandGateway;
-
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.axonframework.messaging.commandhandling.gateway.CommandGateway;
+import org.slf4j.MDC;
 
 /**
  * Adapts Axon 5's CommandGateway to the domain's CompletableFuture-based ports.
@@ -19,24 +20,53 @@ import java.util.concurrent.CompletableFuture;
  * so we send with Object.class and discard the result, mapping to the
  * port-shaped UUID / Void return.
  */
+@Slf4j
 @RequiredArgsConstructor
 public class SkyCommandServicePrimary implements SkyCommandService {
+
+    private static final String JWT_SUBJECT_MDC_KEY = "jwt.subject";
 
     private final CommandGateway commandGateway;
 
     public CompletableFuture<UUID> createSky(String name) {
         UUID skyId = UUID.randomUUID();
+        String subject = MDC.get(JWT_SUBJECT_MDC_KEY);
+        long startNs = System.nanoTime();
+        log.info("audit sky.create start skyId={} subject={}", skyId, subject);
+
         return commandGateway.send(new CreateSkyCommand(skyId, name), Object.class)
-                .thenApply(ignored -> skyId);
+                .thenApply(ignored -> skyId)
+                .whenComplete((id, ex) -> logAuditCompletion("sky.create", skyId, subject, startNs, ex));
     }
 
     public CompletableFuture<Void> updateSky(UUID skyId, String name) {
+        String subject = MDC.get(JWT_SUBJECT_MDC_KEY);
+        long startNs = System.nanoTime();
+        log.info("audit sky.update start skyId={} subject={}", skyId, subject);
+
         return commandGateway.send(new UpdateSkyCommand(skyId, name), Object.class)
-                .thenApply(ignored -> null);
+                .<Void>thenApply(ignored -> null)
+                .whenComplete((ignored, ex) -> logAuditCompletion("sky.update", skyId, subject, startNs, ex));
     }
 
     public CompletableFuture<Void> deleteSky(UUID skyId) {
+        String subject = MDC.get(JWT_SUBJECT_MDC_KEY);
+        long startNs = System.nanoTime();
+        log.info("audit sky.delete start skyId={} subject={}", skyId, subject);
+
         return commandGateway.send(new DeleteSkyCommand(skyId), Object.class)
-                .thenApply(ignored -> null);
+                .<Void>thenApply(ignored -> null)
+                .whenComplete((ignored, ex) -> logAuditCompletion("sky.delete", skyId, subject, startNs, ex));
+    }
+
+    private static void logAuditCompletion(String operation, UUID skyId, String subject, long startNs, Throwable ex) {
+        long durationMs = (System.nanoTime() - startNs) / 1_000_000L;
+        if (ex != null) {
+            log.warn("audit {} failure skyId={} subject={} durationMs={} error={}",
+                    operation, skyId, subject, durationMs, ex.getClass().getSimpleName());
+            return;
+        }
+        log.info("audit {} success skyId={} subject={} durationMs={}",
+                operation, skyId, subject, durationMs);
     }
 }
