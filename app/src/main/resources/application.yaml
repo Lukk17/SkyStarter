@@ -1,5 +1,8 @@
 server:
   port: 7777
+  tomcat:
+    max-swallow-size: 100MB
+    max-http-form-post-size: 100MB
 
 spring:
   application:
