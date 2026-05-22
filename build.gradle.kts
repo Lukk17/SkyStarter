@@ -148,6 +148,7 @@ subprojects {
     tasks.named<Test>("test") {
         exclude("**/*IT.class")
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+        systemProperty("project.root.dir", rootProject.projectDir.absolutePath)
         finalizedBy(tasks.named("jacocoTestReport"))
     }
 
