@@ -43,6 +43,7 @@ subprojects {
     apply(plugin = "java")
     apply(plugin = "java-library")
     apply(plugin = "jacoco")
+    apply(plugin = "org.owasp.dependencycheck")
 
     group = "com.revdevs.pharmacy"
     version = "0.0.1-SNAPSHOT"
@@ -91,6 +92,52 @@ subprojects {
 
         "testImplementation"(libs.findBundle("testing-base").get())
         "testImplementation"(libs.findLibrary("archunit-junit5").get())
+    }
+
+    // JaCoCo coverage baseline: 0.80 INSTRUCTION. Excludes Spring bean-wiring
+    // and Hibernate plumbing — those aren't meaningful unit-test targets and
+    // are covered by Spring context bootstrap or integration tests already.
+    val coverageExcludes = listOf(
+        "**/AppApplication.class",
+        "**/*Config.class",
+        "**/*Configuration.class",
+        "**/SkyUser.class",
+        "**/ByteaEnforcedPostgresSQLDialect.class",
+        "**/*MapperImpl.class",
+        "**/ApiCommonErrorResponses.class",
+        "**/ApiCommonSuccessResponses.class",
+        "**/ProblemTypes.class"
+    )
+
+    tasks.withType<JacocoReport>().configureEach {
+        classDirectories.setFrom(
+            files(classDirectories.files.map { fileTree(it) { exclude(coverageExcludes) } })
+        )
+    }
+
+    tasks.withType<JacocoCoverageVerification>().configureEach {
+        classDirectories.setFrom(
+            files(classDirectories.files.map { fileTree(it) { exclude(coverageExcludes) } })
+        )
+        violationRules {
+            rule {
+                limit {
+                    counter = "INSTRUCTION"
+                    minimum = "0.80".toBigDecimal()
+                }
+            }
+        }
+    }
+
+    tasks.withType<Test>().configureEach {
+        finalizedBy(tasks.named("jacocoTestReport"))
+    }
+
+    plugins.withId("java") {
+        tasks.named("check") {
+            dependsOn("jacocoTestCoverageVerification")
+            dependsOn("dependencyCheckAnalyze")
+        }
     }
 }
 
