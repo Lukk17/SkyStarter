@@ -8,9 +8,6 @@ springdocPlugin = "1.9.0"
 
 # https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-dependencies/versions
 springCloud = "2025.1.1"
-# https://mvnrepository.com/artifact/org.springframework.modulith/spring-modulith-bom/versions
-springModulith = "2.0.6"
-
 # https://mvnrepository.com/artifact/com.tngtech.archunit/archunit-junit5/versions  (no BOM)
 archunit = "1.4.0"
 
@@ -70,7 +67,6 @@ liquibase-gradle = { id = "org.liquibase.gradle", version.ref = "liquibaseGradle
 # Platform BOMs (imported via `platform(...)` in module build scripts)
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
 spring-cloud-bom = { module = "org.springframework.cloud:spring-cloud-dependencies", version.ref = "springCloud" }
-spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
 axon-bom = { module = "org.axonframework:axon-framework-bom", version.ref = "axonBom" }
 

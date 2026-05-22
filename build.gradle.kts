@@ -74,7 +74,6 @@ subprojects {
             configurations.findByName(configName)?.let { _ ->
                 dependencies.add(configName, dependencies.platform(libs.findLibrary("spring-boot-bom").get()))
                 dependencies.add(configName, dependencies.platform(libs.findLibrary("spring-cloud-bom").get()))
-                dependencies.add(configName, dependencies.platform(libs.findLibrary("spring-modulith-bom").get()))
                 dependencies.add(configName, dependencies.platform(libs.findLibrary("axon-bom").get()))
                 if (configName.startsWith("test")) {
                     dependencies.add(configName, dependencies.platform(libs.findLibrary("testcontainers-bom").get()))
