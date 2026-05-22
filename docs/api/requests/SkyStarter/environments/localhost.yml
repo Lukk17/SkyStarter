@@ -4,10 +4,6 @@ variables:
     value: http
   - name: baseUrl
     value: localhost
-  - name: port
-    value: "7777"
-  - name: apiPath
-    value: /v1/starter
   - name: keycloakProtocol
     value: https
   - name: keycloakHost

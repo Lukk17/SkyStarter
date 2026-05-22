@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{protocol}}://{{baseUrl}}:{{port}}{{apiPath}}"
+  url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter"
   body:
     type: json
     data: "{\r\n    \"name\": \"Songo100\"\r\n}"

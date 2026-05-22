@@ -1,0 +1,16 @@
+opencollection: 1.0.0
+
+info:
+  name: SkyStarter
+
+bundled: false
+
+variables:
+  - name: port
+    value: "7777"
+
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

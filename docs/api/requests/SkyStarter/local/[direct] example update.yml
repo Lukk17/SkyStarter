@@ -5,7 +5,7 @@ info:
 
 http:
   method: PUT
-  url: "{{protocol}}://{{baseUrl}}:{{port}}{{apiPath}}/:id"
+  url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter/:id"
   params:
     - name: id
       value: 9ea3971b-c407-42fb-969f-fe63dee642ac

@@ -5,7 +5,7 @@ info:
 
 http:
   method: DELETE
-  url: "{{protocol}}://{{baseUrl}}:{{port}}{{apiPath}}/:id"
+  url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter/:id"
   params:
     - name: id
       value: 33b45b97-086d-47b7-a5a7-826da55f155d
