@@ -8,7 +8,7 @@ http:
   url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter/:id"
   params:
     - name: id
-      value: 95e30cff-9e6f-4c7e-b7c7-e1c288c2d589
+      value: "{{id}}"
       type: path
   body:
     type: json

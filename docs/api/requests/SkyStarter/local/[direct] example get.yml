@@ -8,14 +8,14 @@ http:
   url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter/:id"
   params:
     - name: id
-      value: 9ea3971b-c407-42fb-969f-fe63dee642ac
+      value: "{{id}}"
       type: path
   auth: inherit
 
 runtime:
   scripts:
     - type: tests
-      code: |
+      code: |-
         test("status is 200", function () {
           expect(res.getStatus()).to.equal(200);
         });

@@ -8,7 +8,7 @@ http:
   url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter/:id"
   params:
     - name: id
-      value: 4f29d6e2-b0cb-49a7-b8f7-7b65a587142e
+      value: "{{id}}"
       type: path
   auth: inherit
 
