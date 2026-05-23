@@ -60,11 +60,15 @@ openApi {
     outputFileName.set("openapi.yaml")
     waitTimeInSeconds.set(120)
     customBootRun {
-        // The `local` profile activates LocalSecurityConfig, which provides an
-        // offline JWT decoder (no live Keycloak required) and permits
-        // /openapi/** without auth. Real local PostgreSQL + MongoDB are
-        // required at the default ports -- see docs/running.md prereqs.
-        args.set(listOf("--spring.profiles.active=local"))
+        // The `openapi` profile boots the app with all heavy autoconfigs
+        // (JPA / MongoDB / Liquibase / OAuth2 resource server) excluded and
+        // lazy-initialization on. OpenApiStubConfig provides @Primary stub
+        // SkyCommandService / SkyQueryService beans plus a permissive
+        // SecurityFilterChain so springdoc can scrape the spec without
+        // PostgreSQL, MongoDB, or Keycloak running. See
+        // application-openapi.yaml and OpenApiStubConfig for the full
+        // contract.
+        args.set(listOf("--spring.profiles.active=openapi"))
     }
 }
 

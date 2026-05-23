@@ -1,0 +1,327 @@
+openapi: 3.1.0
+info:
+  title: Starter API
+  description: Example starter API.
+  version: v1.0
+servers:
+- url: http://localhost:7777
+  description: Generated server url
+tags:
+- name: Starter
+  description: Starter API
+paths:
+  /1/starter/{skyId}:
+    get:
+      tags:
+      - Starter
+      summary: Starter endpoint
+      description: Example of starter get endpoint.
+      operationId: getSky
+      parameters:
+      - name: skyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkyResponse"
+        "201":
+          description: Resource created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkyResponse"
+        "202":
+          description: Request accepted for processing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkyResponse"
+        "204":
+          description: No content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkyResponse"
+        "400":
+          description: Bad Request - Invalid parameters or malformed JSON
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized - Missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden - Authenticated but not authorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error - Something went wrong
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearer-jwt: []
+    put:
+      tags:
+      - Starter
+      summary: Starter endpoint
+      description: Example of starter update endpoint.
+      operationId: updateSky
+      parameters:
+      - name: skyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSkyRequest"
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+        "201":
+          description: Resource created
+        "202":
+          description: Request accepted for processing
+        "204":
+          description: No content
+        "400":
+          description: Bad Request - Invalid parameters or malformed JSON
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized - Missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden - Authenticated but not authorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error - Something went wrong
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearer-jwt: []
+    delete:
+      tags:
+      - Starter
+      summary: Starter endpoint
+      description: Example of starter delete endpoint.
+      operationId: deleteSky
+      parameters:
+      - name: skyId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Successful operation
+        "201":
+          description: Resource created
+        "202":
+          description: Request accepted for processing
+        "204":
+          description: No content
+        "400":
+          description: Bad Request - Invalid parameters or malformed JSON
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized - Missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden - Authenticated but not authorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error - Something went wrong
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearer-jwt: []
+  /1/starter:
+    post:
+      tags:
+      - Starter
+      summary: Starter endpoint
+      description: Example of starter create endpoint.
+      operationId: createSky
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSkyRequest"
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        "201":
+          description: Resource created
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        "202":
+          description: Request accepted for processing
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        "204":
+          description: No content
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        "400":
+          description: Bad Request - Invalid parameters or malformed JSON
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "401":
+          description: Unauthorized - Missing or invalid bearer token
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "403":
+          description: Forbidden - Authenticated but not authorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "500":
+          description: Internal Server Error - Something went wrong
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+      security:
+      - bearer-jwt: []
+components:
+  schemas:
+    UpdateSkyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 0
+      required:
+      - name
+    ProblemDetail:
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        properties:
+          type: object
+          additionalProperties: {}
+    CreateSkyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 0
+      required:
+      - name
+    SkyResponse:
+      type: object
+      properties:
+        skyId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+  securitySchemes:
+    bearer-jwt:
+      type: http
+      name: Authorization
+      in: header
+      scheme: bearer
+      bearerFormat: JWT

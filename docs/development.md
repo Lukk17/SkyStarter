@@ -85,7 +85,7 @@ before changing build files.
 ## OpenAPI spec generation
 
 `docs/api/openapi.yaml` is regenerated on every `./gradlew build`. The
-springdoc plugin forks a Spring Boot process under the `local` profile,
+springdoc plugin forks a Spring Boot process under the `openapi` profile,
 hits `/openapi/v3/api-docs.yaml`, writes the spec to disk, and shuts
 the process down.
 
@@ -93,27 +93,30 @@ the process down.
 ./gradlew :app:generateOpenApiDocs    # standalone run, same effect
 ```
 
-The `local` profile activates `LocalSecurityConfig` which provides an
-offline JWT decoder (no live Keycloak required) and permits `/openapi/**`
-without auth.
+**No databases or Docker required.** The `openapi` profile:
 
-**Prerequisites** (per [`docs/running.md`](running.md)):
+- Excludes JPA / Hibernate / MongoDB / Liquibase / OAuth2 resource-server
+  autoconfigs via `spring.autoconfigure.exclude` in
+  `app/src/main/resources/application-openapi.yaml`.
+- Turns on `spring.main.lazy-initialization=true`. Bean *definitions*
+  still get registered (springdoc needs them to introspect routes) but
+  *instantiation* is deferred until something asks for the bean.
+- Has a single config class `OpenApiStubConfig` in the infrastructure
+  module that provides `@Primary` no-op `SkyCommandService` and
+  `SkyQueryService` beans plus a permissive `SecurityFilterChain`.
 
-- PostgreSQL at `localhost:5432` (db `starter`, user `postgres`, password `local`)
-- MongoDB at `localhost:27017` (db `starter`)
-- Docker is **not** required for spec generation -- the fork talks to your
-  actual local databases, not Testcontainers
+The real `SkyServiceConfiguration` and `SkyProjection` are left untouched
+-- they only "win" the resolution when something asks for the real
+beans, which never happens during a `/openapi/v3/api-docs.yaml` hit. The
+production `SecurityConfig` is profile-gated to `"!local & !test & !openapi"`
+so it doesn't try to fetch JWKS from Keycloak.
 
-Without those services running, the forked app fails at Spring context
-refresh and the build fails. Skip with `./gradlew build -x generateOpenApiDocs`
-when you don't have the DBs up.
-
-Commit the regenerated `openapi.yaml` whenever the public API changes --
-the file is the source of truth downstream consumers read for client
+Commit the regenerated `openapi.yaml` whenever the public API changes
+-- the file is the source of truth downstream consumers read for client
 generation.
 
-If the fork swallows its output and you can't tell why it's failing,
-check `app/build/tmp/forkedSpringBootRun/stdout.log` and `stderr.log`.
+If spec generation fails, the forked process's stdout / stderr lands in
+`app/build/tmp/forkedSpringBootRun/{stdout,stderr}.log`.
 
 Testcontainers reuse is on by default for `integrationTest`. Gradle's
 `environment("TESTCONTAINERS_REUSE_ENABLE", "true")` call sets that variable

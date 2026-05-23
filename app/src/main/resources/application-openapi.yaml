@@ -1,0 +1,30 @@
+# Profile used by the springdoc-openapi Gradle plugin to scrape the live
+# spec at /openapi/v3/api-docs.yaml without booting any real infrastructure.
+#
+# spring.main.lazy-initialization defers @Bean instantiation until something
+# asks for the bean. The only thing that asks during spec generation is the
+# springdoc endpoint, which only needs the controllers, which only need
+# SkyCommandService / SkyQueryService -- and the @Primary stub beans in
+# OpenApiStubConfig win that resolution. The real Axon-backed beans in
+# SkyServiceConfiguration never get instantiated, so they never reach for
+# CommandGateway / QueryGateway. Same for SkyProjection's MongoTemplate.
+#
+# Excluded autoconfigs keep the dependent beans (DataSource, EntityManagerFactory,
+# MongoTemplate, OAuth2 JwtDecoder) off the application context entirely.
+spring:
+  main:
+    lazy-initialization: true
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+      - org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.reactive.ReactiveOAuth2ResourceServerAutoConfiguration
+  liquibase:
+    enabled: false
