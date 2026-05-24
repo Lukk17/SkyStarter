@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
+import org.axonframework.eventsourcing.eventstore.AppendEventsTransactionRejectedException;
 import org.axonframework.messaging.queryhandling.QueryExecutionException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class GlobalExceptionHandlerTest {
@@ -86,6 +88,39 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
         assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.INTERNAL);
+    }
+
+    @Test
+    void accessDenied_returns403ProblemDetail() {
+        ResponseEntity<ProblemDetail> response =
+                handler.handleAccessDenied(new AccessDeniedException("nope"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.ACCESS_DENIED);
+        assertThat(response.getBody().getTitle()).isEqualTo("Forbidden");
+        assertThat(response.getBody().getDetail()).doesNotContain("nope");
+    }
+
+    @Test
+    void conflict_returns409ProblemDetail() {
+        ResponseEntity<ProblemDetail> response =
+                handler.handleConflict(new AppendEventsTransactionRejectedException("conflicting append"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.CONFLICT);
+        assertThat(response.getBody().getTitle()).isEqualTo("Conflict");
+        assertThat(response.getBody().getDetail()).doesNotContain("conflicting append");
+    }
+
+    @Test
+    void completion_unwrapsConflict() {
+        CompletionException ex =
+                new CompletionException(new AppendEventsTransactionRejectedException("conflict"));
+
+        ResponseEntity<ProblemDetail> response = handler.handleCompletion(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.CONFLICT);
     }
 
     @Test

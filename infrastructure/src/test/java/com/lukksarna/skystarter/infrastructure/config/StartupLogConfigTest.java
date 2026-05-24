@@ -62,6 +62,29 @@ class StartupLogConfigTest {
     }
 
     @Test
+    void onAcceptingTraffic_withOtlpEndpoint_reportsExportTarget() {
+        MockEnvironment env = populatedEnvironment();
+        env.withProperty("management.otlp.tracing.endpoint", "http://collector:4318/v1/traces");
+        StartupLogConfig config = new StartupLogConfig(env);
+
+        config.onAcceptingTraffic(acceptingTrafficEvent(config));
+
+        String combined = capturedMessages();
+        assertThat(combined).contains("OTLP:     http://collector:4318/v1/traces");
+        assertThat(combined).doesNotContain("in-process only");
+    }
+
+    @Test
+    void onAcceptingTraffic_firedTwice_logsOnce() {
+        StartupLogConfig config = new StartupLogConfig(populatedEnvironment());
+
+        config.onAcceptingTraffic(acceptingTrafficEvent(config));
+        config.onAcceptingTraffic(acceptingTrafficEvent(config));
+
+        assertThat(appender.list).hasSize(1);
+    }
+
+    @Test
     void onAcceptingTraffic_dockerProfile_reportsJsonEncoder() {
         MockEnvironment env = populatedEnvironment();
         env.setActiveProfiles("docker");
