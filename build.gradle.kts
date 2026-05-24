@@ -42,7 +42,7 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "jacoco")
 
-    group = "com.revdevs.pharmacy"
+    group = "com.lukksarna.skystarter"
     version = "0.0.1-SNAPSHOT"
     description = "SkyStarter"
 

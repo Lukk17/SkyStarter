@@ -140,7 +140,7 @@ Use multiline prompts when you need to include logs or detailed context with a c
 
 ## What This Repo Is
 
-SkyStarter is a Spring Boot 4 backend service (Java 25, Gradle Kotlin DSL multi-module) demonstrating an event-sourced "Sky" domain. It exposes REST endpoints, persists events via Axon Framework 5 (Entity Model), serves reads from MongoDB projections, and integrates with Keycloak for OIDC-based authentication. The repo is a reference / starter template for CQRS + Event Sourcing on Spring Boot — used by the maintainer (Lukk17) to bootstrap new services and exercise hexagonal architecture patterns. Group `com.revdevs.pharmacy`, root project `sky-starter`.
+SkyStarter is a Spring Boot 4 backend service (Java 25, Gradle Kotlin DSL multi-module) demonstrating an event-sourced "Sky" domain. It exposes REST endpoints, persists events via Axon Framework 5 (Entity Model), serves reads from MongoDB projections, and integrates with Keycloak for OIDC-based authentication. The repo is a reference / starter template for CQRS + Event Sourcing on Spring Boot — used by the maintainer (Lukk17) to bootstrap new services and exercise hexagonal architecture patterns. Group `com.lukksarna.skystarter`, root project `sky-starter`.
 
 ## Architecture
 
