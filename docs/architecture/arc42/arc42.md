@@ -35,7 +35,7 @@ where the trade-offs have already been made and the wiring is already done.
 | 1 | **Replicability** | A new team can fork this repo, rename the aggregate, and ship a service in days, not weeks. |
 | 2 | **Testability** | Every layer is independently testable. Domain has no Spring-context startup cost. |
 | 3 | **Auditability** | Event sourcing + ADRs make the *why* of every state change discoverable. |
-| 4 | **Operational readiness** | Probes, structured logs, snapshot triggers, segment tuning all in place out of the box. |
+| 4 | **Operational readiness** | Probes, structured logs, and segment tuning in place out of the box. |
 | 5 | **Security** | OIDC by default; method-level role checks; hardcoded credentials forbidden. |
 
 ### 1.3 Stakeholders
@@ -100,7 +100,7 @@ See [diagram: business context](../diagrams/01-business-context.md).
 | Inbound REST | HTTPS, JSON, Bearer JWT | Public API under `/v1/starter/**` |
 | Actuator | HTTP, JSON | Probes (`/actuator/health/{liveness,readiness}`) |
 | OIDC | HTTPS, JWKS | Token validation against Keycloak |
-| Event store | JDBC | PostgreSQL — append-only event log + snapshots |
+| Event store | JDBC | PostgreSQL — append-only event log (snapshots deferred, ADR-0011) |
 | Read model | MongoDB wire protocol | Document collection `skyProjections` |
 
 ---
@@ -144,7 +144,7 @@ See [diagram: container view](../diagrams/02-container-view.md) and [diagram: mo
 
 | Element | Type | Notes |
 |---|---|---|
-| `SkyAggregate` | Axon 5 `@EventSourced(idType=UUID.class, tagKey="skyId")` | Pure state class. `@EntityCreator` no-arg constructor + `@EventSourcingHandler` methods that evolve state when prior events are replayed. Command handlers live in `SkyCommandHandlers`. Snapshots: not wired (follow-up). |
+| `SkyAggregate` | Axon 5 `@EventSourced(idType=UUID.class, tagKey="skyId")` | Pure state class. `@EntityCreator` no-arg constructor + `@EventSourcingHandler` methods that evolve state when prior events are replayed. Command handlers live in `SkyCommandHandlers`. Snapshots: not wired — deferred, see ADR-0011. |
 | `SkyCommandHandlers` | `@Component` with three `@CommandHandler` methods | External command handlers (Axon 5 idiom). Each method takes the command, the loaded entity via `@InjectEntity(idProperty="skyId") SkyAggregate state`, and an `EventAppender`. Validates and emits events through the appender. |
 | `Sky` | Read-model record | DTO returned from queries. |
 | `SkyValidator` | Domain service | Currently: name not blank. Extend per business rule. |
@@ -163,7 +163,7 @@ See [diagram: container view](../diagrams/02-container-view.md) and [diagram: mo
 | `SkyApiMapper` / `SkyPersistenceMapper` | MapStruct mappers (compile-time generated). |
 | `SecurityConfig` / `LocalSecurityConfig` | Profile-split security: real OIDC vs offline JWT decoder. |
 | `KeycloakAuthenticationConverter` | Maps `realm_access.roles` claim → Spring `GrantedAuthority`. |
-| `AxonConfig` | Snapshot trigger definition (`axon.snapshot.trigger.threshold`). |
+| `AxonConfig` | Placeholder Axon configuration class; snapshots deferred (ADR-0011). |
 | `PersistenceConfiguration` | Resolves "strict repository mode" by directing JPA scanner away from Mongo repo package. |
 | `ByteaEnforcedPostgresSQLDialect` | Forces `BLOB → bytea` so Axon event payloads land in `bytea` columns on PostgreSQL 15+. |
 
@@ -304,10 +304,9 @@ All decisions live under [`../decisions/`](../decisions/) as MADR files. Current
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Eventual-consistency window widening under load. | Stale reads after write; user confusion. | Tune segment count and event processor batch size; add Axon metrics; consider a materialised "in-flight write" cache for read-your-writes if needed. |
-| Snapshots not wired under Axon 5. | The threshold-trigger setup we had on Axon 4 has no one-line equivalent in Axon 5; we dropped the snapshot config in ADR-0010 rather than block the upgrade. Aggregates with very long event streams will replay all events on load. | Demo workloads aren't affected. Production tuning is a follow-up: reintroduce snapshots via Axon 5's `SnapshotPolicy` + `SnapshotStore` (e.g. `InMemorySnapshotStore` for dev, JPA-backed for prod). |
+| Snapshots not wired under Axon 5. | Axon 5.1.0's `SnapshotStore` SPI is `@Internal` and only attachable via the manual `declarative(...)` builder, which is incompatible with `@EventSourced` auto-detection (ADR-0011). Aggregates with very long event streams replay all events on load. | Demo workloads aren't affected. Reassess when Axon ships a stable, auto-detection-compatible snapshot store; see ADR-0011. |
 | Baseline DDL drift on Axon major upgrades. | New `<NNNN>-axon-X-event-store-migration.yaml` changesets stack on top of the baseline (see `0002-axon-5-event-store-migration.yaml` for the precedent). | Per ADR-0009, the baseline is never edited; the integration test catches schema drift via Hibernate `validate`. |
 | Local profile decodes JWT without verification. | Catastrophic if accidentally enabled in prod. | Profile name `local`; production `SecurityConfig` is `!local & !test`. Document explicitly. |
-| Snapshot threshold tuned to 5 in `application.yaml`. | Unrealistic for prod — too many snapshots. | Override per environment via `axon.snapshot.trigger.threshold`. |
 | Single Mongo collection (`skyProjections`) for the only read view. | Adding a second read shape requires a new projection processor. | Keep one collection per query shape; rebuild from events when introducing a new view. |
 
 ---

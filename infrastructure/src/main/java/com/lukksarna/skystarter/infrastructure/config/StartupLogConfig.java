@@ -164,13 +164,11 @@ public class StartupLogConfig {
                 "axon.eventhandling.processors.sky-projection-processor.mode", NOT_CONFIGURED);
         String segments = environment.getProperty(
                 "axon.eventhandling.processors.sky-projection-processor.initial-segment-count", NOT_CONFIGURED);
-        String snapshotThreshold = environment.getProperty("axon.snapshot.trigger.threshold", NOT_CONFIGURED);
         String eventsSerializer = environment.getProperty("axon.serializer.events", NOT_CONFIGURED);
 
         out.append(SECTION_INDENT).append("Axon Framework:").append(LINE);
         out.append(FIELD_INDENT).append("Processor:      sky-projection-processor (mode=").append(processorMode).append(")").append(LINE);
         out.append(FIELD_INDENT).append("Segments:       ").append(segments).append(LINE);
-        out.append(FIELD_INDENT).append("Snapshot every: ").append(snapshotThreshold).append(" events").append(LINE);
         out.append(FIELD_INDENT).append("Serializer:     ").append(eventsSerializer).append(LINE);
         out.append(LINE);
     }

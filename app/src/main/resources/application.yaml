@@ -105,10 +105,6 @@ axon:
         # the same segment). This starter runs single-instance, so 1 segment is
         # the honest default — raise it (a power of 2) before scaling out.
         initial-segment-count: 1
-  # custom property used in AxonConfig class
-  snapshot:
-    trigger:
-      threshold: 5
 
 logging:
   level:

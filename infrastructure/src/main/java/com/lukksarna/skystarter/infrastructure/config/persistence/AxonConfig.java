@@ -5,15 +5,13 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Axon Framework configuration.
  *
- * Axon 5 removed both {@code Snapshotter} (the producer interface) and
- * {@code EventCountSnapshotTriggerDefinition} (the threshold-based trigger).
- * Snapshots are now managed via the {@code SnapshotPolicy} + {@code SnapshotStore}
- * interfaces under {@code org.axonframework.eventsourcing.snapshot.*}.
- *
- * The threshold-trigger setup we had on Axon 4 has no one-line equivalent in
- * Axon 5; reintroducing snapshots is tracked as a follow-up (see ADR-0010).
- * The template's previous threshold of 5 was a demo value, never a production
- * tuning, so dropping it has no operational impact.
+ * Snapshots are intentionally not wired. Axon 5.1.0 ships the
+ * {@code SnapshotPolicy} API but its {@code SnapshotStore} SPI is
+ * {@code @Internal} and only reachable through the manual
+ * {@code EventSourcedEntityModule.declarative(...)} builder, which is
+ * incompatible with the {@code @EventSourced} auto-detection this template is
+ * built around. Reintroducing snapshots is a tracked deferred item — see
+ * ADR-0011 — until Axon publishes a stable, auto-detection-compatible store.
  */
 @Configuration
 public class AxonConfig {
