@@ -59,7 +59,7 @@ RUN keytool -importcert \
 # needed for healthcheck
 RUN apk add --no-cache curl
 
-EXPOSE 7979
+EXPOSE 7777
 
 ENTRYPOINT ["java", "-jar", "./app.jar"]
 
