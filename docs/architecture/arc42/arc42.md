@@ -157,8 +157,8 @@ See [diagram: container view](../diagrams/02-container-view.md) and [diagram: mo
 | Element | Notes |
 |---|---|
 | `StarterController` | `/v1/starter` REST surface; method-secured with `hasAnyRole('USER','ADMIN')`. Returns `CompletableFuture<...>`. |
-| `GlobalExceptionHandler` | Maps domain & framework exceptions to `ErrorResponse` JSON; unwraps `CompletionException`. |
-| `SkyProjection` | `@ProcessingGroup("sky-projection-processor")`; on `SkyCreatedEvent`/`SkyUpdatedEvent`/`SkyDeletedEvent` it writes to MongoDB. Also handles `FindSkyByIdQuery`. |
+| `GlobalExceptionHandler` | Maps domain & framework exceptions to RFC 9457 `ProblemDetail` (`application/problem+json`, `urn:skystarter:error:*` types); unwraps `CompletionException`. |
+| `SkyProjection` | `@Component` event handler bound to the `sky-projection-processor` (Axon 5 dropped `@ProcessingGroup` — the processor is configured in `application.yaml`); on `SkyCreatedEvent`/`SkyUpdatedEvent`/`SkyDeletedEvent` it writes to MongoDB. Also handles `FindSkyByIdQuery`. |
 | `SkyEntity` + `SkyMongoRepository` | Document model and Spring Data Mongo repository. |
 | `SkyApiMapper` / `SkyPersistenceMapper` | MapStruct mappers (compile-time generated). |
 | `SecurityConfig` / `LocalSecurityConfig` | Profile-split security: real OIDC vs offline JWT decoder. |
@@ -233,10 +233,10 @@ See [diagram: deployment view](../diagrams/06-deployment-view.md).
 
 ### 8.2 API design
 
-- Resource path: `/v1/starter/{skyId}` — versioned at v1 from day one.
-- POST returns `201 Created` with the new ID body.
-- Errors use a uniform `ErrorResponse(code, details)` envelope.
-- Bean Validation on request DTOs (`@NotBlank`, `@Size`); failures yield `code=VALIDATION_ERROR`.
+- Resource path: `/v1/starter/{skyId}` — versioned at v1 from day one (Spring Boot 4 native path versioning, kept verbatim by `StringApiVersionParser`).
+- POST returns `201 Created` with a `CreateSkyResponse` body (`{ "skyId": ... }`) and a `Location` header; PUT/DELETE return `204 No Content`.
+- Errors use RFC 9457 `ProblemDetail` (`application/problem+json`) with `urn:skystarter:error:*` type URIs.
+- Bean Validation on request DTOs (`@NotBlank`, `@Size`); failures yield a `400` ProblemDetail of type `urn:skystarter:error:validation` with an `errors` object mapping field → message.
 
 ### 8.3 Security
 

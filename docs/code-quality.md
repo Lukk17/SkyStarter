@@ -4,8 +4,6 @@
 
 The project uses IntelliJ IDEA's default formatter. The exported scheme is checked in at [`DefaultFormatting.xml`](../DefaultFormatting.xml). Import it via *Settings → Editor → Code Style → Scheme → Import…*.
 
-[Spotless](https://plugins.gradle.org/plugin/com.diffplug.spotless) is on the classpath but its auto-tasks (`spotlessApply`, `spotlessCheck`) are intentionally **disabled** in `build.gradle.kts` so the build doesn't touch sources without an explicit invitation.
-
 ### Line separator
 
 Use **Unix line endings (LF)** — Windows CRLF causes friction with Docker images and shell scripts.
@@ -53,13 +51,3 @@ nvdApiKey=<api-key>
 ```
 
 Report: [`build/reports/dependency-analysis/build-health-report.txt`](../build/reports/dependency-analysis/build-health-report.txt).
-
-## Migration coverage guard
-
-The custom `verifyMigrationCoverage` Gradle task fails the build if a JPA `@Entity` class's bytecode changed without a corresponding new Liquibase changeset under `infrastructure/src/main/resources/db/changelog/`. See [`docs/database-migrations.md`](database-migrations.md). Override marker for non-persistent entity changes: include `[no-migration]` in the commit message.
-
-```shell
-./gradlew verifyMigrationCoverage
-```
-
-Wired into the standard `check` lifecycle.

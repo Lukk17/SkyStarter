@@ -20,7 +20,7 @@ This template ships with a layered test suite plus a manual end-to-end procedure
 # Including the integration test (Docker required for Testcontainers)
 ./gradlew :app:test
 
-# Everything, plus dependency check + migration-coverage guard
+# Everything, plus coverage gate + ArchUnit + integration tests
 ./gradlew check
 ```
 

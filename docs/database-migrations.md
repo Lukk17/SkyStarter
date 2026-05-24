@@ -36,9 +36,9 @@ The baseline (`0001-...`) is **frozen** — never edited. Per ADR-0009, future s
    ./gradlew :app:test
    ```
 
-## CI guard: changes to `@Entity` classes
+## Changes to `@Entity` classes
 
-The custom `verifyMigrationCoverage` Gradle task fails the build if a JPA `@Entity` class's bytecode changed without a new changelog file. Override (sparingly) by adding **`[no-migration]`** to the commit message — only for changes that don't affect persisted state (refactor, `@Transient` field, comment).
+Schema change goes through Liquibase only (`spring.jpa.hibernate.ddl-auto: validate` everywhere), so any `@Entity` change that alters the persisted shape needs an accompanying changeset under `infrastructure/src/main/resources/db/changelog/`. The integration test boots against a real PostgreSQL (Testcontainers) with `validate`, so a schema/entity mismatch fails the build there.
 
 ## Working tasks
 
