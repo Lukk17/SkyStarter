@@ -7,3 +7,8 @@ spring:
   data:
     mongodb:
       uri: "mongodb://host.docker.internal:27017/starter"
+
+management:
+  tracing:
+    sampling:
+      probability: 0.1

@@ -32,7 +32,7 @@ public class SkyCommandServicePrimary implements SkyCommandService {
         UUID skyId = UUID.randomUUID();
         String subject = MDC.get(JWT_SUBJECT_MDC_KEY);
         long startNs = System.nanoTime();
-        log.info("audit sky.create start skyId={} subject={}", skyId, subject);
+        logAuditStart("sky.create", skyId, subject);
 
         return commandGateway.send(new CreateSkyCommand(skyId, name), Object.class)
                 .thenApply(ignored -> skyId)
@@ -42,7 +42,7 @@ public class SkyCommandServicePrimary implements SkyCommandService {
     public CompletableFuture<Void> updateSky(UUID skyId, String name) {
         String subject = MDC.get(JWT_SUBJECT_MDC_KEY);
         long startNs = System.nanoTime();
-        log.info("audit sky.update start skyId={} subject={}", skyId, subject);
+        logAuditStart("sky.update", skyId, subject);
 
         return commandGateway.send(new UpdateSkyCommand(skyId, name), Object.class)
                 .<Void>thenApply(ignored -> null)
@@ -52,21 +52,43 @@ public class SkyCommandServicePrimary implements SkyCommandService {
     public CompletableFuture<Void> deleteSky(UUID skyId) {
         String subject = MDC.get(JWT_SUBJECT_MDC_KEY);
         long startNs = System.nanoTime();
-        log.info("audit sky.delete start skyId={} subject={}", skyId, subject);
+        logAuditStart("sky.delete", skyId, subject);
 
         return commandGateway.send(new DeleteSkyCommand(skyId), Object.class)
                 .<Void>thenApply(ignored -> null)
                 .whenComplete((ignored, ex) -> logAuditCompletion("sky.delete", skyId, subject, startNs, ex));
     }
 
+    private static void logAuditStart(String operation, UUID skyId, String subject) {
+        log.atInfo()
+                .setMessage("audit start")
+                .addKeyValue("operation", operation)
+                .addKeyValue("skyId", skyId)
+                .addKeyValue("subject", subject)
+                .log();
+    }
+
     private static void logAuditCompletion(String operation, UUID skyId, String subject, long startNs, Throwable ex) {
         long durationMs = (System.nanoTime() - startNs) / 1_000_000L;
         if (ex != null) {
-            log.warn("audit {} failure skyId={} subject={} durationMs={} error={}",
-                    operation, skyId, subject, durationMs, ex.getClass().getSimpleName());
+            log.atWarn()
+                    .setMessage("audit complete")
+                    .addKeyValue("operation", operation)
+                    .addKeyValue("outcome", "failure")
+                    .addKeyValue("skyId", skyId)
+                    .addKeyValue("subject", subject)
+                    .addKeyValue("durationMs", durationMs)
+                    .addKeyValue("error", ex.getClass().getSimpleName())
+                    .log();
             return;
         }
-        log.info("audit {} success skyId={} subject={} durationMs={}",
-                operation, skyId, subject, durationMs);
+        log.atInfo()
+                .setMessage("audit complete")
+                .addKeyValue("operation", operation)
+                .addKeyValue("outcome", "success")
+                .addKeyValue("skyId", skyId)
+                .addKeyValue("subject", subject)
+                .addKeyValue("durationMs", durationMs)
+                .log();
     }
 }

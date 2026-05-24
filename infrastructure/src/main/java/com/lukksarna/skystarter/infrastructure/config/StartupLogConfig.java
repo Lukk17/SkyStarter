@@ -10,6 +10,7 @@ import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -50,6 +51,7 @@ public class StartupLogConfig {
     private static final String BANNER_RESOURCE = "banner.txt";
 
     private final Environment environment;
+    private final AtomicBoolean logged = new AtomicBoolean(false);
 
     public StartupLogConfig(Environment environment) {
         this.environment = environment;
@@ -58,6 +60,9 @@ public class StartupLogConfig {
     @EventListener
     public void onAcceptingTraffic(AvailabilityChangeEvent<ReadinessState> event) {
         if (event.getState() != ReadinessState.ACCEPTING_TRAFFIC) {
+            return;
+        }
+        if (!logged.compareAndSet(false, true)) {
             return;
         }
         log.info("{}", buildStartupBlock());
