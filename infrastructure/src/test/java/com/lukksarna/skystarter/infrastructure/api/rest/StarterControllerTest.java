@@ -7,7 +7,9 @@ import com.lukksarna.skystarter.domain.port.SkyCommandService;
 import com.lukksarna.skystarter.domain.port.SkyQueryService;
 import com.lukksarna.skystarter.infrastructure.api.exception.GlobalExceptionHandler;
 import com.lukksarna.skystarter.infrastructure.api.rest.dto.response.SkyResponse;
+import com.lukksarna.skystarter.infrastructure.config.api.inbound.StringApiVersionParser;
 import com.lukksarna.skystarter.infrastructure.mapper.SkyApiMapper;
+import org.axonframework.eventsourcing.eventstore.AppendEventsTransactionRejectedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,7 +22,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.accept.ApiVersionStrategy;
 import org.springframework.web.accept.DefaultApiVersionStrategy;
 import org.springframework.web.accept.PathApiVersionResolver;
-import org.springframework.web.accept.SemanticApiVersionParser;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +36,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -65,7 +66,7 @@ class StarterControllerTest {
     private static ApiVersionStrategy pathSegmentZeroVersionStrategy() {
         return new DefaultApiVersionStrategy(
                 List.of(new PathApiVersionResolver(0)),
-                new SemanticApiVersionParser(),
+                new StringApiVersionParser(),
                 false,
                 null,
                 true,
@@ -87,7 +88,25 @@ class StarterControllerTest {
 
         mvc.perform(asyncDispatch(async))
                 .andExpect(status().isCreated())
-                .andExpect(content().string("\"" + id + "\""));
+                .andExpect(header().string("Location", "/v1/starter/" + id))
+                .andExpect(jsonPath("$.skyId").value(id.toString()));
+    }
+
+    @Test
+    void createSky_concurrentConflict_returns409() throws Exception {
+        when(commandService.createSky(anyString()))
+                .thenReturn(CompletableFuture.failedFuture(
+                        new AppendEventsTransactionRejectedException("conflict")));
+
+        MvcResult async = mvc.perform(post("/v1/starter")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Orion\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mvc.perform(asyncDispatch(async))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.type").value("urn:skystarter:error:conflict"));
     }
 
     @Test
@@ -146,7 +165,7 @@ class StarterControllerTest {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        mvc.perform(asyncDispatch(async)).andExpect(status().isOk());
+        mvc.perform(asyncDispatch(async)).andExpect(status().isNoContent());
     }
 
     @Test
@@ -159,7 +178,7 @@ class StarterControllerTest {
                 .andExpect(request().asyncStarted())
                 .andReturn();
 
-        mvc.perform(asyncDispatch(async)).andExpect(status().isOk());
+        mvc.perform(asyncDispatch(async)).andExpect(status().isNoContent());
     }
 
     @Test

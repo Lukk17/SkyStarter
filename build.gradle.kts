@@ -105,7 +105,6 @@ subprojects {
         "**/ByteaEnforcedPostgresSQLDialect.class",
         "**/*MapperImpl.class",
         "**/ApiCommonErrorResponses.class",
-        "**/ApiCommonSuccessResponses.class",
         "**/ProblemTypes.class"
     )
 

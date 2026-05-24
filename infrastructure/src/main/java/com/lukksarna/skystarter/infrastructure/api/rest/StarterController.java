@@ -4,20 +4,21 @@ import com.lukksarna.skystarter.domain.port.SkyCommandService;
 import com.lukksarna.skystarter.domain.port.SkyQueryService;
 import com.lukksarna.skystarter.infrastructure.api.rest.dto.request.CreateSkyRequest;
 import com.lukksarna.skystarter.infrastructure.api.rest.dto.request.UpdateSkyRequest;
+import com.lukksarna.skystarter.infrastructure.api.rest.dto.response.CreateSkyResponse;
 import com.lukksarna.skystarter.infrastructure.api.rest.dto.response.SkyResponse;
 import com.lukksarna.skystarter.infrastructure.config.api.inbound.ApiCommonErrorResponses;
-import com.lukksarna.skystarter.infrastructure.config.api.inbound.ApiCommonSuccessResponses;
 import com.lukksarna.skystarter.infrastructure.config.security.SkyUser;
 import com.lukksarna.skystarter.infrastructure.mapper.SkyApiMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -34,12 +35,12 @@ public class StarterController {
     private final SkyApiMapper skyApiMapper;
 
     @Operation(
-            summary = "Starter endpoint",
-            description = "Example of starter get endpoint."
+            summary = "Get a Sky",
+            description = "Returns the current state of the Sky with the given id."
     )
-    @ApiCommonSuccessResponses
+    @ApiResponse(responseCode = "200", description = "Sky found")
     @ApiCommonErrorResponses
-    @GetMapping(value = "/{skyId}", version = "1")
+    @GetMapping(value = "/{skyId}", version = "v1")
     public CompletableFuture<ResponseEntity<SkyResponse>> getSky(@PathVariable("skyId") UUID skyId) {
         return skyQueryService
                 .findById(skyId)
@@ -48,36 +49,40 @@ public class StarterController {
     }
 
     @Operation(
-            summary = "Starter endpoint",
-            description = "Example of starter create endpoint."
+            summary = "Create a Sky",
+            description = "Creates a new Sky and returns its id with a Location header pointing at the created resource."
     )
-    @ApiCommonSuccessResponses
+    @ApiResponse(responseCode = "201", description = "Sky created")
     @ApiCommonErrorResponses
-    @PostMapping(version = "1")
-    public CompletableFuture<ResponseEntity<UUID>> createSky(@Valid @RequestBody CreateSkyRequest request) {
+    @PostMapping(version = "v1")
+    public CompletableFuture<ResponseEntity<CreateSkyResponse>> createSky(@Valid @RequestBody CreateSkyRequest request) {
         return skyCommandService.createSky(request.getName())
-                .thenApply(id -> ResponseEntity.status(HttpStatus.CREATED).body(id));
+                .thenApply(id -> ResponseEntity
+                        .created(URI.create("/v1/starter/" + id))
+                        .body(new CreateSkyResponse(id)));
     }
 
     @Operation(
-            summary = "Starter endpoint",
-            description = "Example of starter update endpoint."
+            summary = "Update a Sky",
+            description = "Renames an existing Sky."
     )
-    @ApiCommonSuccessResponses
+    @ApiResponse(responseCode = "204", description = "Sky updated")
     @ApiCommonErrorResponses
-    @PutMapping(value = "/{skyId}", version = "1")
-    public CompletableFuture<Void> updateSky(@PathVariable("skyId") UUID skyId, @Valid @RequestBody UpdateSkyRequest request) {
-        return skyCommandService.updateSky(skyId, request.getName());
+    @PutMapping(value = "/{skyId}", version = "v1")
+    public CompletableFuture<ResponseEntity<Void>> updateSky(@PathVariable("skyId") UUID skyId, @Valid @RequestBody UpdateSkyRequest request) {
+        return skyCommandService.updateSky(skyId, request.getName())
+                .thenApply(ignored -> ResponseEntity.noContent().build());
     }
 
     @Operation(
-            summary = "Starter endpoint",
-            description = "Example of starter delete endpoint."
+            summary = "Delete a Sky",
+            description = "Deletes a Sky. Not idempotent: deleting an unknown id returns 404."
     )
-    @ApiCommonSuccessResponses
+    @ApiResponse(responseCode = "204", description = "Sky deleted")
     @ApiCommonErrorResponses
-    @DeleteMapping(value = "/{skyId}", version = "1")
-    public CompletableFuture<Void> deleteSky(@PathVariable("skyId") UUID skyId) {
-        return skyCommandService.deleteSky(skyId);
+    @DeleteMapping(value = "/{skyId}", version = "v1")
+    public CompletableFuture<ResponseEntity<Void>> deleteSky(@PathVariable("skyId") UUID skyId) {
+        return skyCommandService.deleteSky(skyId)
+                .thenApply(ignored -> ResponseEntity.noContent().build());
     }
 }

@@ -15,8 +15,9 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Starter API")
-                        .description("Example starter API.")
-                        .version("v1.0"))
+                        .description("Example starter API. Endpoints are path-versioned (e.g. /v1/...); "
+                                + "this version field is the OpenAPI document version, not the API version.")
+                        .version("1.0.0"))
                 .components(new Components()
                         .addSecuritySchemes("bearer-jwt", new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)

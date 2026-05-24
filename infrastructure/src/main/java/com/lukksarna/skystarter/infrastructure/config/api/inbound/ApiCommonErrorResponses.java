@@ -11,7 +11,9 @@ import org.springframework.http.ProblemDetail;
 
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-@ApiResponse(responseCode = "400", description = "Bad Request - Invalid parameters or malformed JSON",
+@ApiResponse(responseCode = "400",
+        description = "Bad Request - Invalid parameters or malformed JSON. On validation failures the body "
+                + "carries an additional 'errors' object mapping each rejected field to its message.",
         content = @Content(mediaType = "application/problem+json",
                 schema = @Schema(implementation = ProblemDetail.class)))
 @ApiResponse(responseCode = "401", description = "Unauthorized - Missing or invalid bearer token",
@@ -21,6 +23,9 @@ import org.springframework.http.ProblemDetail;
         content = @Content(mediaType = "application/problem+json",
                 schema = @Schema(implementation = ProblemDetail.class)))
 @ApiResponse(responseCode = "404", description = "Not Found - The requested resource does not exist",
+        content = @Content(mediaType = "application/problem+json",
+                schema = @Schema(implementation = ProblemDetail.class)))
+@ApiResponse(responseCode = "409", description = "Conflict - The resource was modified concurrently",
         content = @Content(mediaType = "application/problem+json",
                 schema = @Schema(implementation = ProblemDetail.class)))
 @ApiResponse(responseCode = "500", description = "Internal Server Error - Something went wrong",

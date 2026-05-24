@@ -1,8 +1,9 @@
 openapi: 3.1.0
 info:
   title: Starter API
-  description: Example starter API.
-  version: v1.0
+  description: "Example starter API. Endpoints are path-versioned (e.g. /v1/...);\
+    \ this version field is the OpenAPI document version, not the API version."
+  version: 1.0.0
 servers:
 - url: http://localhost:7777
   description: Generated server url
@@ -10,12 +11,12 @@ tags:
 - name: Starter
   description: Starter API
 paths:
-  /1/starter/{skyId}:
+  /v1/starter/{skyId}:
     get:
       tags:
       - Starter
-      summary: Starter endpoint
-      description: Example of starter get endpoint.
+      summary: Get a Sky
+      description: Returns the current state of the Sky with the given id.
       operationId: getSky
       parameters:
       - name: skyId
@@ -26,31 +27,15 @@ paths:
           format: uuid
       responses:
         "200":
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SkyResponse"
-        "201":
-          description: Resource created
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SkyResponse"
-        "202":
-          description: Request accepted for processing
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SkyResponse"
-        "204":
-          description: No content
+          description: Sky found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SkyResponse"
         "400":
-          description: Bad Request - Invalid parameters or malformed JSON
+          description: Bad Request - Invalid parameters or malformed JSON. On validation
+            failures the body carries an additional 'errors' object mapping each rejected
+            field to its message.
           content:
             application/problem+json:
               schema:
@@ -69,6 +54,12 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "404":
           description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: Conflict - The resource was modified concurrently
           content:
             application/problem+json:
               schema:
@@ -84,8 +75,8 @@ paths:
     put:
       tags:
       - Starter
-      summary: Starter endpoint
-      description: Example of starter update endpoint.
+      summary: Update a Sky
+      description: Renames an existing Sky.
       operationId: updateSky
       parameters:
       - name: skyId
@@ -101,16 +92,12 @@ paths:
               $ref: "#/components/schemas/UpdateSkyRequest"
         required: true
       responses:
-        "200":
-          description: Successful operation
-        "201":
-          description: Resource created
-        "202":
-          description: Request accepted for processing
         "204":
-          description: No content
+          description: Sky updated
         "400":
-          description: Bad Request - Invalid parameters or malformed JSON
+          description: Bad Request - Invalid parameters or malformed JSON. On validation
+            failures the body carries an additional 'errors' object mapping each rejected
+            field to its message.
           content:
             application/problem+json:
               schema:
@@ -129,6 +116,12 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "404":
           description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: Conflict - The resource was modified concurrently
           content:
             application/problem+json:
               schema:
@@ -144,8 +137,9 @@ paths:
     delete:
       tags:
       - Starter
-      summary: Starter endpoint
-      description: Example of starter delete endpoint.
+      summary: Delete a Sky
+      description: "Deletes a Sky. Not idempotent: deleting an unknown id returns\
+        \ 404."
       operationId: deleteSky
       parameters:
       - name: skyId
@@ -155,16 +149,12 @@ paths:
           type: string
           format: uuid
       responses:
-        "200":
-          description: Successful operation
-        "201":
-          description: Resource created
-        "202":
-          description: Request accepted for processing
         "204":
-          description: No content
+          description: Sky deleted
         "400":
-          description: Bad Request - Invalid parameters or malformed JSON
+          description: Bad Request - Invalid parameters or malformed JSON. On validation
+            failures the body carries an additional 'errors' object mapping each rejected
+            field to its message.
           content:
             application/problem+json:
               schema:
@@ -183,6 +173,12 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "404":
           description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: Conflict - The resource was modified concurrently
           content:
             application/problem+json:
               schema:
@@ -195,12 +191,13 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
       security:
       - bearer-jwt: []
-  /1/starter:
+  /v1/starter:
     post:
       tags:
       - Starter
-      summary: Starter endpoint
-      description: Example of starter create endpoint.
+      summary: Create a Sky
+      description: Creates a new Sky and returns its id with a Location header pointing
+        at the created resource.
       operationId: createSky
       requestBody:
         content:
@@ -209,36 +206,16 @@ paths:
               $ref: "#/components/schemas/CreateSkyRequest"
         required: true
       responses:
-        "200":
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                type: string
-                format: uuid
         "201":
-          description: Resource created
+          description: Sky created
           content:
             application/json:
               schema:
-                type: string
-                format: uuid
-        "202":
-          description: Request accepted for processing
-          content:
-            application/json:
-              schema:
-                type: string
-                format: uuid
-        "204":
-          description: No content
-          content:
-            application/json:
-              schema:
-                type: string
-                format: uuid
+                $ref: "#/components/schemas/CreateSkyResponse"
         "400":
-          description: Bad Request - Invalid parameters or malformed JSON
+          description: Bad Request - Invalid parameters or malformed JSON. On validation
+            failures the body carries an additional 'errors' object mapping each rejected
+            field to its message.
           content:
             application/problem+json:
               schema:
@@ -257,6 +234,12 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
         "404":
           description: Not Found - The requested resource does not exist
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "409":
+          description: Conflict - The resource was modified concurrently
           content:
             application/problem+json:
               schema:
@@ -308,6 +291,12 @@ components:
           minLength: 0
       required:
       - name
+    CreateSkyResponse:
+      type: object
+      properties:
+        skyId:
+          type: string
+          format: uuid
     SkyResponse:
       type: object
       properties:

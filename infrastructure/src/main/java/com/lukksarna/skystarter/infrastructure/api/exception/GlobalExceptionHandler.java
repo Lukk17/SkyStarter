@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.axonframework.eventsourcing.eventstore.AppendEventsTransactionRejectedException;
 import org.axonframework.messaging.queryhandling.QueryExecutionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -27,6 +28,7 @@ public class GlobalExceptionHandler {
     private static final String GENERIC_BAD_JSON = "Malformed JSON request body.";
     private static final String VALIDATION_DETAIL = "Request validation failed.";
     private static final String FORBIDDEN_DETAIL = "Access denied.";
+    private static final String CONFLICT_DETAIL = "The resource was modified concurrently. Retry the request.";
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
@@ -39,6 +41,17 @@ public class GlobalExceptionHandler {
         detail.setType(ProblemTypes.ACCESS_DENIED);
         detail.setTitle("Forbidden");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(detail);
+    }
+
+    @ExceptionHandler(AppendEventsTransactionRejectedException.class)
+    public ResponseEntity<ProblemDetail> handleConflict(AppendEventsTransactionRejectedException ex) {
+        // Axon rejects the append when a concurrent command advanced the same
+        // aggregate past the version this command read (optimistic concurrency).
+        log.warn("Concurrent modification rejected: {}", ex.getMessage());
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, CONFLICT_DETAIL);
+        detail.setType(ProblemTypes.CONFLICT);
+        detail.setTitle("Conflict");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(detail);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -112,6 +125,9 @@ public class GlobalExceptionHandler {
         }
         if (cause instanceof IllegalArgumentException illegal) {
             return handleIllegalArgumentException(illegal);
+        }
+        if (cause instanceof AppendEventsTransactionRejectedException conflict) {
+            return handleConflict(conflict);
         }
         log.error("Unexpected async error", cause);
         return internalServerError();

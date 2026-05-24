@@ -11,6 +11,11 @@ public class ApiVersionConfig implements WebMvcConfigurer {
 
     @Override
     public void configureApiVersioning(ApiVersionConfigurer configurer) {
-        configurer.usePathSegment(VERSION_PATH_SEGMENT_INDEX);
+        // StringApiVersionParser keeps "v1" verbatim so the URL segment, the
+        // @GetMapping(version = "v1") attribute, and the generated OpenAPI path
+        // all stay on /v1 (the default SemanticApiVersionParser would strip the
+        // "v" and render /1 in the spec).
+        configurer.usePathSegment(VERSION_PATH_SEGMENT_INDEX)
+                .setVersionParser(new StringApiVersionParser());
     }
 }
