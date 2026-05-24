@@ -4,8 +4,10 @@ import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import com.lukksarna.skystarter.domain.model.Sky;
 import com.lukksarna.skystarter.domain.port.SkyCommandService;
 import com.lukksarna.skystarter.domain.port.SkyQueryService;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -42,6 +44,24 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class OpenApiStubConfig {
+
+    private static final Set<String> FORBIDDEN_COMPANION_PROFILES = Set.of("prod", "docker", "staging");
+
+    /**
+     * Fail fast if the permissive openapi profile is ever combined with a
+     * prod-like profile. The profile disables auth and stubs out the write
+     * path, so it must never run anywhere real -- it exists only for
+     * `./gradlew generateOpenApiDocs`.
+     */
+    public OpenApiStubConfig(Environment environment) {
+        for (String profile : environment.getActiveProfiles()) {
+            if (FORBIDDEN_COMPANION_PROFILES.contains(profile)) {
+                throw new IllegalStateException(
+                        "The 'openapi' profile is for spec generation only and must not run with the '"
+                                + profile + "' profile -- it disables authentication and stubs the write path.");
+            }
+        }
+    }
 
     @Bean
     @Primary

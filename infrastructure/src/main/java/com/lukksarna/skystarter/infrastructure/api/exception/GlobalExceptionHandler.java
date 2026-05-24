@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -25,6 +26,20 @@ public class GlobalExceptionHandler {
     private static final String GENERIC_NOT_FOUND = "There is no resource under specified path.";
     private static final String GENERIC_BAD_JSON = "Malformed JSON request body.";
     private static final String VALIDATION_DETAIL = "Request validation failed.";
+    private static final String FORBIDDEN_DETAIL = "Access denied.";
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
+        // Method-security (@PreAuthorize) throws AuthorizationDeniedException (a
+        // subclass) during controller invocation, so it surfaces here in the
+        // @ControllerAdvice rather than at the filter-chain AccessDeniedHandler.
+        // Without this handler it would fall through to handleException -> 500.
+        log.warn("Access denied: {}", ex.getMessage());
+        ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, FORBIDDEN_DETAIL);
+        detail.setType(ProblemTypes.ACCESS_DENIED);
+        detail.setTitle("Forbidden");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(detail);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ProblemDetail> handleApiArgumentNotValidException(MethodArgumentNotValidException ex) {

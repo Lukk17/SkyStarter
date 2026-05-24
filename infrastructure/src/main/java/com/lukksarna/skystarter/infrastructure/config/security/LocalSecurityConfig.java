@@ -7,8 +7,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import com.lukksarna.skystarter.infrastructure.api.exception.ProblemDetailAccessDeniedHandler;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -28,7 +30,8 @@ public class LocalSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, ProblemDetailAccessDeniedHandler accessDeniedHandler)
+            throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**", "/openapi/**").permitAll()
@@ -37,6 +40,8 @@ public class LocalSecurityConfig {
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtRolesConverter()))
                 )
+                .addFilterAfter(new JwtSubjectMdcFilter(), BearerTokenAuthenticationFilter.class)
+                .exceptionHandling(handling -> handling.accessDeniedHandler(accessDeniedHandler))
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .build();

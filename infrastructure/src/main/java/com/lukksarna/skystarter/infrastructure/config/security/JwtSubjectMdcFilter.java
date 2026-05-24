@@ -9,10 +9,14 @@ import org.slf4j.MDC;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-@Component
+// Intentionally NOT a @Component. Registered inside the Spring Security filter
+// chain (after the bearer-token authentication filter) via http.addFilterAfter
+// in the security configs, so SecurityContextHolder is already populated when
+// resolveSubject() runs. A @Component would be auto-registered in the outer
+// servlet filter chain ahead of Spring Security, where the context is still
+// empty -- making jwt.subject always null.
 public class JwtSubjectMdcFilter extends OncePerRequestFilter {
 
     public static final String MDC_KEY = "jwt.subject";
