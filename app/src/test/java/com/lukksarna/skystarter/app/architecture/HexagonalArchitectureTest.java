@@ -2,6 +2,7 @@ package com.lukksarna.skystarter.app.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -11,15 +12,15 @@ import org.junit.jupiter.api.Test;
 class HexagonalArchitectureTest {
 
     private static final String DOMAIN_PACKAGE = "com.lukksarna.skystarter.domain..";
+    private static final String SERVICE_PACKAGE = "com.lukksarna.skystarter.service..";
+    private static final String INFRASTRUCTURE_PACKAGE = "com.lukksarna.skystarter.infrastructure..";
+    private static final String APP_PACKAGE = "com.lukksarna.skystarter.app..";
     private static final String REST_PACKAGE = "com.lukksarna.skystarter.infrastructure.api.rest..";
 
     private static final JavaClasses CLASSES = importProjectClasses();
 
     private static JavaClasses importProjectClasses() {
-        String root = System.getProperty("project.root.dir");
-        if (root == null) {
-            throw new IllegalStateException("project.root.dir system property not set; see build.gradle.kts test task");
-        }
+        String root = resolveProjectRoot();
         java.nio.file.Path[] paths = {
                 java.nio.file.Paths.get(root, "domain", "build", "classes", "java", "main"),
                 java.nio.file.Paths.get(root, "service", "build", "classes", "java", "main"),
@@ -34,6 +35,26 @@ class HexagonalArchitectureTest {
         return new ClassFileImporter()
                 .withImportOption(new ImportOption.DoNotIncludeTests())
                 .importPaths(paths);
+    }
+
+    // Gradle sets project.root.dir on the test task. When the test is run from
+    // an IDE that property is absent, so fall back to walking up from the
+    // working directory to the Gradle root (the directory with settings.gradle.kts).
+    private static String resolveProjectRoot() {
+        String root = System.getProperty("project.root.dir");
+        if (root != null) {
+            return root;
+        }
+        java.nio.file.Path dir = java.nio.file.Paths.get("").toAbsolutePath();
+        while (dir != null) {
+            if (java.nio.file.Files.exists(dir.resolve("settings.gradle.kts"))) {
+                return dir.toString();
+            }
+            dir = dir.getParent();
+        }
+        throw new IllegalStateException(
+                "Could not locate the project root: project.root.dir is unset and no settings.gradle.kts "
+                        + "was found walking up from " + java.nio.file.Paths.get("").toAbsolutePath());
     }
 
     @Test
@@ -71,6 +92,21 @@ class HexagonalArchitectureTest {
         classes().that().areAnnotatedWith("org.springframework.web.bind.annotation.RestController")
                 .should().resideInAPackage(REST_PACKAGE)
                 .because("REST adapters belong in the infrastructure inbound API package")
+                .check(CLASSES);
+    }
+
+    @Test
+    void dependencies_only_point_inward() {
+        layeredArchitecture().consideringOnlyDependenciesInLayers()
+                .layer("Domain").definedBy(DOMAIN_PACKAGE)
+                .layer("Service").definedBy(SERVICE_PACKAGE)
+                .layer("Infrastructure").definedBy(INFRASTRUCTURE_PACKAGE)
+                .layer("App").definedBy(APP_PACKAGE)
+                .whereLayer("App").mayNotBeAccessedByAnyLayer()
+                .whereLayer("Infrastructure").mayOnlyBeAccessedByLayers("App")
+                .whereLayer("Service").mayOnlyBeAccessedByLayers("Infrastructure", "App")
+                .whereLayer("Domain").mayOnlyBeAccessedByLayers("Service", "Infrastructure", "App")
+                .because("dependencies must point inward: app -> infrastructure -> service -> domain")
                 .check(CLASSES);
     }
 }

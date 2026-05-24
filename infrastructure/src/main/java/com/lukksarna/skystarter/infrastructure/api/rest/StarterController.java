@@ -56,7 +56,7 @@ public class StarterController {
     @ApiCommonErrorResponses
     @PostMapping(version = "v1")
     public CompletableFuture<ResponseEntity<CreateSkyResponse>> createSky(@Valid @RequestBody CreateSkyRequest request) {
-        return skyCommandService.createSky(request.getName())
+        return skyCommandService.createSky(request.name())
                 .thenApply(id -> ResponseEntity
                         .created(URI.create("/v1/starter/" + id))
                         .body(new CreateSkyResponse(id)));
@@ -70,7 +70,7 @@ public class StarterController {
     @ApiCommonErrorResponses
     @PutMapping(value = "/{skyId}", version = "v1")
     public CompletableFuture<ResponseEntity<Void>> updateSky(@PathVariable("skyId") UUID skyId, @Valid @RequestBody UpdateSkyRequest request) {
-        return skyCommandService.updateSky(skyId, request.getName())
+        return skyCommandService.updateSky(skyId, request.name())
                 .thenApply(ignored -> ResponseEntity.noContent().build());
     }
 

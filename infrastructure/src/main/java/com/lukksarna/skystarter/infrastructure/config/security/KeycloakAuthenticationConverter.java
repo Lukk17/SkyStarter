@@ -7,9 +7,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimNames;
@@ -41,8 +41,8 @@ public class KeycloakAuthenticationConverter {
                         .stream()
                         .filter(String.class::isInstance)
                         .map(String.class::cast)
-                        .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toList())
+                        .<GrantedAuthority>map(SimpleGrantedAuthority::new)
+                        .toList()
         );
         return converter;
     }
