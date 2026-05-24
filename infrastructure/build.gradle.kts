@@ -32,8 +32,6 @@ dependencies {
     implementation(libs.spring.boot.starter.data.mongodb)
     implementation(libs.springdoc.openapi.starter)
 
-    implementation(libs.spring.boot.devtools)
-
     implementation(libs.mapstruct)
     annotationProcessor(libs.mapstruct.processor)
     annotationProcessor(libs.lombok.mapstruct.binding)
