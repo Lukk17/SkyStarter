@@ -1,6 +1,7 @@
 package com.lukksarna.skystarter.infrastructure.config.security;
 
 import com.lukksarna.skystarter.infrastructure.api.exception.ProblemDetailAccessDeniedHandler;
+import com.lukksarna.skystarter.infrastructure.api.exception.ProblemDetailAuthenticationEntryPoint;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,18 +36,27 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, ProblemDetailAccessDeniedHandler accessDeniedHandler)
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           ProblemDetailAccessDeniedHandler accessDeniedHandler,
+                                           ProblemDetailAuthenticationEntryPoint authenticationEntryPoint)
             throws Exception {
         return http
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**", "/openapi/**").permitAll()
+                        // Probes + scrape target + API docs are unauthenticated;
+                        // every other actuator endpoint (env, beans, mappings, ...)
+                        // requires authentication.
+                        .requestMatchers("/actuator/health/**", "/actuator/info",
+                                "/actuator/prometheus", "/openapi/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(customJwtRolesConverter()))
+                        .authenticationEntryPoint(authenticationEntryPoint)
                 )
                 .addFilterAfter(new JwtSubjectMdcFilter(), BearerTokenAuthenticationFilter.class)
-                .exceptionHandling(handling -> handling.accessDeniedHandler(accessDeniedHandler))
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(AbstractHttpConfigurer::disable)
                 .build();

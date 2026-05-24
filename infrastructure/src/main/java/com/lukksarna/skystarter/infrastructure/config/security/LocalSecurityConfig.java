@@ -21,7 +21,7 @@ public class LocalSecurityConfig {
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        return KeycloakAuthenticationConverter::parseOfflineToken;
+        return KeycloakAuthenticationConverter::parseUnsafeOfflineToken;
     }
 
     @Bean

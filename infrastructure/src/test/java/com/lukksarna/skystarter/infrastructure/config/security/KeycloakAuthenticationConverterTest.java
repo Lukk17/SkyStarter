@@ -48,19 +48,19 @@ class KeycloakAuthenticationConverterTest {
     }
 
     @Test
-    void parseOfflineToken_invalidTokenThrows() {
-        assertThatThrownBy(() -> KeycloakAuthenticationConverter.parseOfflineToken("not-a-jwt"))
+    void parseUnsafeOfflineToken_invalidTokenThrows() {
+        assertThatThrownBy(() -> KeycloakAuthenticationConverter.parseUnsafeOfflineToken("not-a-jwt"))
                 .isInstanceOf(JwtException.class);
     }
 
     @Test
-    void parseOfflineToken_decodesHeaderAndClaims() {
+    void parseUnsafeOfflineToken_decodesHeaderAndClaims() {
         long iat = Instant.now().getEpochSecond();
         String token = buildOfflineToken(
                 "{\"alg\":\"none\",\"typ\":\"JWT\"}",
                 "{\"sub\":\"user\",\"iat\":" + iat + ",\"exp\":" + (iat + 60) + "}");
 
-        Jwt jwt = KeycloakAuthenticationConverter.parseOfflineToken(token);
+        Jwt jwt = KeycloakAuthenticationConverter.parseUnsafeOfflineToken(token);
 
         assertThat(jwt.getSubject()).isEqualTo("user");
         assertThat(jwt.getIssuedAt()).isNotNull();
@@ -68,12 +68,12 @@ class KeycloakAuthenticationConverterTest {
     }
 
     @Test
-    void parseOfflineToken_preservesNestedClaimsAsIs() {
+    void parseUnsafeOfflineToken_preservesNestedClaimsAsIs() {
         String token = buildOfflineToken(
                 "{\"alg\":\"none\"}",
                 "{\"sub\":\"u\",\"realm_access\":{\"roles\":[\"ROLE_USER\"]}}");
 
-        Jwt jwt = KeycloakAuthenticationConverter.parseOfflineToken(token);
+        Jwt jwt = KeycloakAuthenticationConverter.parseUnsafeOfflineToken(token);
 
         assertThat(jwt.<Map<String, Object>>getClaim("realm_access").get("roles"))
                 .isEqualTo(List.of("ROLE_USER"));

@@ -47,7 +47,14 @@ public class KeycloakAuthenticationConverter {
         return converter;
     }
 
-    public static Jwt parseOfflineToken(String token) {
+    /**
+     * Decodes a JWT WITHOUT verifying its signature, expiry, or issuer. For the
+     * {@code local} profile only, where no live Keycloak is available. NEVER use
+     * this as a production {@link org.springframework.security.oauth2.jwt.JwtDecoder}
+     * -- it trusts any well-formed token. Production uses
+     * {@code JwtDecoders.fromIssuerLocation(...)} which validates the signature.
+     */
+    public static Jwt parseUnsafeOfflineToken(String token) {
         try {
             String[] parts = token.split("\\.");
             String headerPayload = new String(URL_DECODER.decode(parts[0]), StandardCharsets.UTF_8);
