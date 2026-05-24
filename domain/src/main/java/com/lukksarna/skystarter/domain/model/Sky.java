@@ -5,6 +5,6 @@ import java.util.UUID;
 public record Sky(
         UUID skyId,
         String name,
-        String status
+        SkyStatus status
 ) {
 }

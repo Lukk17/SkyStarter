@@ -1,6 +1,7 @@
 package com.lukksarna.skystarter.infrastructure.mapper;
 
 import com.lukksarna.skystarter.domain.model.Sky;
+import com.lukksarna.skystarter.domain.model.SkyStatus;
 import com.lukksarna.skystarter.infrastructure.api.rest.dto.response.SkyResponse;
 import com.lukksarna.skystarter.infrastructure.persistence.entity.SkyEntity;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,7 @@ class SkyMapperTest {
     @Test
     void domainToApiResponse_copiesAllFields() {
         UUID id = UUID.randomUUID();
-        Sky sky = new Sky(id, "Orion", "CREATED");
+        Sky sky = new Sky(id, "Orion", SkyStatus.CREATED);
 
         SkyResponse response = apiMapper.domainToApiResponse(sky);
 
@@ -30,13 +31,16 @@ class SkyMapperTest {
     @Test
     void entityToDomain_copiesAllFields() {
         UUID id = UUID.randomUUID();
-        SkyEntity entity = new SkyEntity(id, "Vega", "CREATED");
+        SkyEntity entity = new SkyEntity();
+        entity.setSkyId(id);
+        entity.setName("Vega");
+        entity.setStatus(SkyStatus.CREATED);
 
         Sky sky = persistenceMapper.entityToDomain(entity);
 
         assertThat(sky.skyId()).isEqualTo(id);
         assertThat(sky.name()).isEqualTo("Vega");
-        assertThat(sky.status()).isEqualTo("CREATED");
+        assertThat(sky.status()).isEqualTo(SkyStatus.CREATED);
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import com.lukksarna.skystarter.domain.model.Sky;
+import com.lukksarna.skystarter.domain.model.SkyStatus;
 import com.lukksarna.skystarter.domain.query.FindSkyByIdQuery;
 import com.lukksarna.skystarter.infrastructure.mapper.SkyPersistenceMapper;
 import com.lukksarna.skystarter.infrastructure.persistence.entity.SkyEntity;
@@ -39,11 +40,10 @@ public class SkyProjection {
 
     @EventHandler
     public void on(SkyCreatedEvent event) {
-        SkyEntity sky = new SkyEntity(
-                event.getSkyId(),
-                event.getName(),
-                "CREATED"
-        );
+        SkyEntity sky = new SkyEntity();
+        sky.setSkyId(event.getSkyId());
+        sky.setName(event.getName());
+        sky.setStatus(SkyStatus.CREATED);
         skyRepository.save(sky);
     }
 

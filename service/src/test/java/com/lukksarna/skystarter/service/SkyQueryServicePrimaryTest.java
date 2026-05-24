@@ -1,6 +1,7 @@
 package com.lukksarna.skystarter.service;
 
 import com.lukksarna.skystarter.domain.model.Sky;
+import com.lukksarna.skystarter.domain.model.SkyStatus;
 import com.lukksarna.skystarter.domain.query.FindSkyByIdQuery;
 import org.axonframework.messaging.queryhandling.gateway.QueryGateway;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ class SkyQueryServicePrimaryTest {
     @Test
     void findById_returnsSkyFromQueryGateway() {
         UUID skyId = UUID.randomUUID();
-        Sky expected = new Sky(skyId, "Orion", "CREATED");
+        Sky expected = new Sky(skyId, "Orion", SkyStatus.CREATED);
         when(queryGateway.query(any(FindSkyByIdQuery.class), eq(Sky.class)))
                 .thenReturn(CompletableFuture.completedFuture(expected));
 

@@ -6,6 +6,8 @@ import com.lukksarna.skystarter.domain.command.UpdateSkyCommand;
 import com.lukksarna.skystarter.domain.event.SkyCreatedEvent;
 import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
+import com.lukksarna.skystarter.domain.model.SkyStatus;
+import com.lukksarna.skystarter.domain.service.SkyValidator;
 import org.axonframework.messaging.eventhandling.gateway.EventAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +48,7 @@ class SkyAggregateTest {
     @BeforeEach
     void setUp() {
         state = new SkyAggregate();
-        handlers = new SkyCommandHandlers();
+        handlers = new SkyCommandHandlers(new SkyValidator());
     }
 
     @Test
@@ -86,7 +88,7 @@ class SkyAggregateTest {
 
         assertThat(state.getSkyId()).isEqualTo(SKY_ID);
         assertThat(state.getName()).isEqualTo("Orion");
-        assertThat(state.getStatus()).isEqualTo("CREATED");
+        assertThat(state.getStatus()).isEqualTo(SkyStatus.CREATED);
     }
 
     @Test
@@ -137,6 +139,6 @@ class SkyAggregateTest {
                 .isEqualTo(SKY_ID);
 
         state.on(new SkyDeletedEvent(SKY_ID));
-        assertThat(state.getStatus()).isEqualTo("DELETED");
+        assertThat(state.getStatus()).isEqualTo(SkyStatus.DELETED);
     }
 }

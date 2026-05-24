@@ -3,6 +3,7 @@ server:
   tomcat:
     max-swallow-size: 100MB
     max-http-form-post-size: 100MB
+    connection-timeout: 20s
 
 spring:
   application:
@@ -98,12 +99,12 @@ axon:
       "sky-projection-processor":
         # Axon 5 renamed TRACKING → POOLED (thread-pool-based streaming processor).
         mode: pooled
-        # Defines the number of parallel "work queues" (segments) for this processor.
-        # This enables horizontal scaling. A single pod will be "greedy" and claim all 10 segments.
-        # When more pods are added, the segments will automatically rebalance (e.g., 2 pods = 5 segments each).
-        # Event order per aggregate is always guaranteed, as all events for one aggregate will go to the same segment.
-        # Axon rounds the segment count up to the nearest power of 2 (e.g., 10 becomes 16) for optimal hash distribution.
-        initial-segment-count: 8
+        # Number of parallel "work queues" (segments). A single instance claims
+        # all of them; adding instances rebalances segments across them. Event
+        # order per aggregate is preserved (all of one aggregate's events hash to
+        # the same segment). This starter runs single-instance, so 1 segment is
+        # the honest default — raise it (a power of 2) before scaling out.
+        initial-segment-count: 1
   # custom property used in AxonConfig class
   snapshot:
     trigger:

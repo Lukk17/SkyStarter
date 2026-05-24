@@ -5,6 +5,7 @@ import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import com.lukksarna.skystarter.domain.model.Sky;
+import com.lukksarna.skystarter.domain.model.SkyStatus;
 import com.lukksarna.skystarter.domain.query.FindSkyByIdQuery;
 import com.lukksarna.skystarter.infrastructure.mapper.SkyPersistenceMapper;
 import com.lukksarna.skystarter.infrastructure.persistence.entity.SkyEntity;
@@ -41,8 +42,11 @@ class SkyProjectionTest {
 
     @Test
     void findById_returnsMappedDomain() {
-        SkyEntity entity = new SkyEntity(ID, "Vega", "CREATED");
-        Sky sky = new Sky(ID, "Vega", "CREATED");
+        SkyEntity entity = new SkyEntity();
+        entity.setSkyId(ID);
+        entity.setName("Vega");
+        entity.setStatus(SkyStatus.CREATED);
+        Sky sky = new Sky(ID, "Vega", SkyStatus.CREATED);
         when(repository.findById(ID)).thenReturn(Optional.of(entity));
         when(mapper.entityToDomain(entity)).thenReturn(sky);
 
@@ -69,12 +73,15 @@ class SkyProjectionTest {
         SkyEntity saved = captor.getValue();
         assertThat(saved.getSkyId()).isEqualTo(ID);
         assertThat(saved.getName()).isEqualTo("Vega");
-        assertThat(saved.getStatus()).isEqualTo("CREATED");
+        assertThat(saved.getStatus()).isEqualTo(SkyStatus.CREATED);
     }
 
     @Test
     void onUpdated_updatesNameWhenPresent() {
-        SkyEntity existing = new SkyEntity(ID, "Vega", "CREATED");
+        SkyEntity existing = new SkyEntity();
+        existing.setSkyId(ID);
+        existing.setName("Vega");
+        existing.setStatus(SkyStatus.CREATED);
         when(repository.findById(ID)).thenReturn(Optional.of(existing));
 
         projection.on(new SkyUpdatedEvent(ID, "Vega-2"));

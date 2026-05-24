@@ -3,6 +3,7 @@ package com.lukksarna.skystarter.domain.aggregate;
 import com.lukksarna.skystarter.domain.event.SkyCreatedEvent;
 import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
+import com.lukksarna.skystarter.domain.model.SkyStatus;
 import lombok.Getter;
 import lombok.Setter;
 import org.axonframework.eventsourcing.annotation.EventSourcingHandler;
@@ -34,7 +35,7 @@ public class SkyAggregate {
 
     private UUID skyId;
     private String name;
-    private String status;
+    private SkyStatus status;
 
     @EntityCreator
     public SkyAggregate() {
@@ -44,7 +45,7 @@ public class SkyAggregate {
     public void on(SkyCreatedEvent event) {
         this.skyId = event.getSkyId();
         this.name = event.getName();
-        this.status = "CREATED";
+        this.status = SkyStatus.CREATED;
     }
 
     @EventSourcingHandler
@@ -54,6 +55,6 @@ public class SkyAggregate {
 
     @EventSourcingHandler
     public void on(SkyDeletedEvent event) {
-        this.status = "DELETED";
+        this.status = SkyStatus.DELETED;
     }
 }

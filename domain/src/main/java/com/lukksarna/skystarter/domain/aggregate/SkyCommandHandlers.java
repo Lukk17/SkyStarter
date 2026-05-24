@@ -7,6 +7,7 @@ import com.lukksarna.skystarter.domain.event.SkyCreatedEvent;
 import com.lukksarna.skystarter.domain.event.SkyDeletedEvent;
 import com.lukksarna.skystarter.domain.event.SkyUpdatedEvent;
 import com.lukksarna.skystarter.domain.service.SkyValidator;
+import lombok.RequiredArgsConstructor;
 import org.axonframework.messaging.commandhandling.annotation.CommandHandler;
 import org.axonframework.messaging.eventhandling.gateway.EventAppender;
 import org.axonframework.modelling.annotation.InjectEntity;
@@ -23,9 +24,10 @@ import org.springframework.stereotype.Component;
  * injected {@link EventAppender}.
  */
 @Component
+@RequiredArgsConstructor
 public class SkyCommandHandlers {
 
-    private final SkyValidator validator = new SkyValidator();
+    private final SkyValidator validator;
 
     @CommandHandler
     public void handle(CreateSkyCommand command,

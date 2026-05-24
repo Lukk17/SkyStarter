@@ -2,6 +2,7 @@ package com.lukksarna.skystarter.app.integration;
 
 import com.lukksarna.skystarter.app.TestSecurityConfig;
 import com.lukksarna.skystarter.app.TestcontainersConfiguration;
+import com.lukksarna.skystarter.infrastructure.api.rest.dto.response.CreateSkyResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -63,7 +64,8 @@ class SkyEndToEndTest {
                 .content("{\"name\":\"Andromeda\"}"));
         assertThat(createOut.getResponse().getStatus()).isEqualTo(201);
 
-        UUID id = UUID.fromString(json.readValue(createOut.getResponse().getContentAsString(), String.class));
+        UUID id = json.readValue(
+                createOut.getResponse().getContentAsString(), CreateSkyResponse.class).skyId();
 
         await().atMost(15, SECONDS).untilAsserted(() -> {
             MvcResult got = performMaybeAsync(get("/v1/starter/" + id).with(user("u").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))));
@@ -76,7 +78,7 @@ class SkyEndToEndTest {
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Andromeda-2\"}"));
-        assertThat(upd.getResponse().getStatus()).isEqualTo(200);
+        assertThat(upd.getResponse().getStatus()).isEqualTo(204);
 
         await().atMost(15, SECONDS).untilAsserted(() -> {
             MvcResult got = performMaybeAsync(get("/v1/starter/" + id).with(user("u").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))));
@@ -86,7 +88,7 @@ class SkyEndToEndTest {
 
         MvcResult del = performMaybeAsync(delete("/v1/starter/" + id).with(user("u").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")))
                 .with(csrf()));
-        assertThat(del.getResponse().getStatus()).isEqualTo(200);
+        assertThat(del.getResponse().getStatus()).isEqualTo(204);
 
         await().atMost(15, SECONDS).untilAsserted(() -> {
             MvcResult got = performMaybeAsync(get("/v1/starter/" + id).with(user("u").authorities(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER"))));

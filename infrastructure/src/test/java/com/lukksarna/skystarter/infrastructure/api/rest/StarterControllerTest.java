@@ -3,6 +3,7 @@ package com.lukksarna.skystarter.infrastructure.api.rest;
 import tools.jackson.databind.ObjectMapper;
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
 import com.lukksarna.skystarter.domain.model.Sky;
+import com.lukksarna.skystarter.domain.model.SkyStatus;
 import com.lukksarna.skystarter.domain.port.SkyCommandService;
 import com.lukksarna.skystarter.domain.port.SkyQueryService;
 import com.lukksarna.skystarter.infrastructure.api.exception.GlobalExceptionHandler;
@@ -122,7 +123,7 @@ class StarterControllerTest {
     @Test
     void getSky_success_returnsResponse() throws Exception {
         UUID id = UUID.randomUUID();
-        Sky sky = new Sky(id, "Orion", "CREATED");
+        Sky sky = new Sky(id, "Orion", SkyStatus.CREATED);
         SkyResponse response = new SkyResponse(id, "Orion", "CREATED");
         when(queryService.findById(id)).thenReturn(CompletableFuture.completedFuture(sky));
         when(apiMapper.domainToApiResponse(sky)).thenReturn(response);
