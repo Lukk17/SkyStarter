@@ -1,5 +1,6 @@
 package com.lukksarna.skystarter.infrastructure.config.api.inbound;
 
+import org.jspecify.annotations.NullMarked;
 import org.springframework.web.accept.ApiVersionParser;
 
 /**
@@ -10,6 +11,7 @@ import org.springframework.web.accept.ApiVersionParser;
  * {@code @GetMapping(version = "v1")} attribute, and the generated OpenAPI path
  * all agree on {@code /v1/...}.
  */
+@NullMarked
 public class StringApiVersionParser implements ApiVersionParser<String> {
 
     @Override

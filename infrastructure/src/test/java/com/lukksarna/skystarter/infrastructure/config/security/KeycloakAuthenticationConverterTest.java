@@ -112,6 +112,19 @@ class KeycloakAuthenticationConverterTest {
                 .containsExactly("ROLE_USER");
     }
 
+    @Test
+    void parseUnsafeOfflineToken_dateClaimNotANumber_throws() {
+        // iat present but not a Number exercises the "isDateClaim && value
+        // instanceof Number == false" branch; Jwt.build() then rejects the
+        // non-Instant timestamp, surfacing as a JwtException.
+        String token = buildOfflineToken(
+                "{\"alg\":\"none\"}",
+                "{\"sub\":\"u\",\"iat\":\"not-a-number\"}");
+
+        assertThatThrownBy(() -> KeycloakAuthenticationConverter.parseUnsafeOfflineToken(token))
+                .isInstanceOf(JwtException.class);
+    }
+
     private static String buildOfflineToken(String headerJson, String payloadJson) {
         java.util.Base64.Encoder enc = java.util.Base64.getUrlEncoder().withoutPadding();
         return enc.encodeToString(headerJson.getBytes(java.nio.charset.StandardCharsets.UTF_8))

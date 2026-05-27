@@ -58,8 +58,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ProblemDetail> handleApiArgumentNotValidException(MethodArgumentNotValidException ex) {
         log.warn("API request body not valid: {}", ex.getMessage());
 
+        // FieldError.getDefaultMessage() is nullable and Collectors.toMap rejects
+        // null values, so fall back to a generic message rather than NPE.
         Map<String, String> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
-                .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage, (a, b) -> a));
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        fieldError -> fieldError.getDefaultMessage() != null
+                                ? fieldError.getDefaultMessage()
+                                : "invalid value",
+                        (first, second) -> first));
 
         ProblemDetail detail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, VALIDATION_DETAIL);
         detail.setType(ProblemTypes.VALIDATION);

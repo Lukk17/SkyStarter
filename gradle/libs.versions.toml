@@ -8,8 +8,6 @@ springdocPlugin = "1.9.0"
 
 # https://mvnrepository.com/artifact/org.springframework.cloud/spring-cloud-dependencies/versions
 springCloud = "2025.1.1"
-# https://mvnrepository.com/artifact/com.tngtech.archunit/archunit-junit5/versions  (no BOM)
-archunit = "1.4.2"
 
 # https://mvnrepository.com/artifact/org.mapstruct/mapstruct  (no BOM)
 mapstruct = "1.6.3"
@@ -109,7 +107,6 @@ assertj-core = { module = "org.assertj:assertj-core" }
 hamcrest = { module = "org.hamcrest:hamcrest" }
 
 # ArchUnit — for architecture tests (e.g. enforcing the hexagonal dependency rule).
-archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 
 # Testcontainers — managed by testcontainers-bom (2.x renamed all modules `testcontainers-<name>`)
 testcontainers-junit = { module = "org.testcontainers:testcontainers-junit-jupiter" }

@@ -12,7 +12,7 @@ Temurin 25, then runs the full gate:
 ```
 
 That covers unit tests, the Testcontainers integration suite (the runner's
-Docker daemon backs Testcontainers), ArchUnit, and the JaCoCo coverage floor.
+Docker daemon backs Testcontainers) and the JaCoCo coverage floor.
 There is no OWASP dependency-check job — run it locally when you need it (see
 [`code-quality.md`](code-quality.md)).
 

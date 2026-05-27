@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -27,7 +28,7 @@ public class ProblemDetailAuthenticationEntryPoint implements AuthenticationEntr
 
     private final ObjectMapper objectMapper;
 
-    public ProblemDetailAuthenticationEntryPoint(ObjectMapper objectMapper) {
+    public ProblemDetailAuthenticationEntryPoint(@Qualifier("jacksonJsonMapper") ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 

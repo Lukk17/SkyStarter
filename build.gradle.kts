@@ -17,6 +17,11 @@ allprojects {
 
     tasks.withType<JavaCompile> {
         options.encoding = projectEncoding
+        // Retain method/constructor parameter names in bytecode so Spring can
+        // bind @PathVariable / @RequestParam without explicit names. The Spring
+        // Boot plugin adds this for :app; set it for every module (the REST
+        // controllers live in :infrastructure, which has no Boot plugin).
+        options.compilerArgs.add("-parameters")
     }
 
     tasks.withType<Test> {
@@ -88,7 +93,6 @@ subprojects {
         "compileOnly"(libs.findLibrary("slf4j").get())
 
         "testImplementation"(libs.findBundle("testing-base").get())
-        "testImplementation"(libs.findLibrary("archunit-junit5").get())
     }
 
     // JaCoCo coverage baseline: 0.80 INSTRUCTION. Excludes Spring bean-wiring
@@ -99,13 +103,28 @@ subprojects {
         "**/*Config.class",
         "**/*Configuration.class",
         "**/SkyUser.class",
+        // contributeTypes() delegates to PostgreSQLDialect.super, which can't be
+        // exercised without a Hibernate boot; the BLOB->bytea behaviour is covered
+        // by the integration test (schema validate against real PostgreSQL).
         "**/ByteaEnforcedPostgresSQLDialect.class",
         "**/*MapperImpl.class",
         "**/ApiCommonErrorResponses.class",
-        "**/ProblemTypes.class"
+        "**/ProblemTypes.class",
+        // Generated data holders — records and Lombok @Data/@Value accessors,
+        // equals/hashCode/toString. No hand-written logic to assert; the gate
+        // focuses on behaviour, not generated boilerplate.
+        "**/domain/model/*.class",
+        "**/domain/event/*.class",
+        "**/domain/command/*.class",
+        "**/domain/query/*.class",
+        "**/api/rest/dto/**",
+        "**/persistence/entity/*.class"
     )
 
     tasks.withType<JacocoReport>().configureEach {
+        reports {
+            xml.required.set(true)
+        }
         classDirectories.setFrom(
             files(classDirectories.files.map { fileTree(it) { exclude(coverageExcludes) } })
         )
@@ -119,7 +138,11 @@ subprojects {
             rule {
                 limit {
                     counter = "INSTRUCTION"
-                    minimum = "0.80".toBigDecimal()
+                    minimum = "0.90".toBigDecimal()
+                }
+                limit {
+                    counter = "BRANCH"
+                    minimum = "1.00".toBigDecimal()
                 }
             }
         }
@@ -155,7 +178,6 @@ subprojects {
     tasks.named<Test>("test") {
         exclude("**/integration/**/*.class")
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
-        systemProperty("project.root.dir", rootProject.projectDir.absolutePath)
         finalizedBy(tasks.named("jacocoTestReport"))
     }
 

@@ -41,6 +41,9 @@ public class SkyCommandHandlers {
         eventAppender.append(new SkyCreatedEvent(command.getSkyId(), command.getName()));
     }
 
+    // state is required so Axon sources the aggregate, but update/delete decide
+    // purely from the command, so the loaded state is intentionally unread.
+    @SuppressWarnings("unused")
     @CommandHandler
     public void handle(UpdateSkyCommand command,
                        @InjectEntity(idProperty = "skyId") SkyAggregate state,
@@ -49,6 +52,7 @@ public class SkyCommandHandlers {
         eventAppender.append(new SkyUpdatedEvent(command.getSkyId(), command.getName()));
     }
 
+    @SuppressWarnings("unused")
     @CommandHandler
     public void handle(DeleteSkyCommand command,
                        @InjectEntity(idProperty = "skyId") SkyAggregate state,

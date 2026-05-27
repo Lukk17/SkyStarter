@@ -59,7 +59,7 @@ where the trade-offs have already been made and the wiring is already done.
 | MongoDB for projections | `application.yaml` | Read model is a separate datastore — denormalised by intent. |
 | Keycloak as IdP | `SecurityConfig` | Realm roles in `realm_access.roles` claim. Spring Security 7 also injects a `FactorGrantedAuthority` automatically. |
 | Gradle multi-module + version catalog | `settings.gradle.kts`, `libs.versions.toml` | Dependencies declared once, used many. Versions resolved through BOMs (Spring Boot, Spring Cloud, Spring Modulith, Testcontainers, Axon) wherever possible. |
-| Hexagonal module boundary | `domain` has no Spring web/data deps | Inward-only — enforced by build. ArchUnit available for automated verification. |
+| Hexagonal module boundary | `domain` has no Spring web/data deps | Inward-only — enforced at compile time by the Gradle module graph (`app → infrastructure → service → domain`). |
 
 ### Per-environment compatibility matrix
 
@@ -163,7 +163,6 @@ See [diagram: container view](../diagrams/02-container-view.md) and [diagram: mo
 | `SkyApiMapper` / `SkyPersistenceMapper` | MapStruct mappers (compile-time generated). |
 | `SecurityConfig` / `LocalSecurityConfig` | Profile-split security: real OIDC vs offline JWT decoder. |
 | `KeycloakAuthenticationConverter` | Maps `realm_access.roles` claim → Spring `GrantedAuthority`. |
-| `AxonConfig` | Placeholder Axon configuration class; snapshots deferred (ADR-0011). |
 | `PersistenceConfiguration` | Resolves "strict repository mode" by directing JPA scanner away from Mongo repo package. |
 | `ByteaEnforcedPostgresSQLDialect` | Forces `BLOB → bytea` so Axon event payloads land in `bytea` columns on PostgreSQL 15+. |
 

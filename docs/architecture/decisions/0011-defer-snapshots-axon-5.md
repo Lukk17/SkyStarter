@@ -62,7 +62,9 @@ auto-detection-compatible snapshot store. Concretely:
 - Removed `axon.snapshot.trigger.threshold` from `application.yaml`.
 - Removed the "Snapshot every: N events" line from the startup banner
   (`StartupLogConfig`).
-- `AxonConfig`'s Javadoc now states the deferral and points here.
+- Removed the empty `AxonConfig` placeholder class. We keep no empty
+  `@Configuration` classes; add an Axon configuration class back only when
+  there is real configuration to hold (e.g. when snapshots are reintroduced).
 
 ## Consequences
 

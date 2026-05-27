@@ -41,7 +41,7 @@ public class StarterController {
     @ApiResponse(responseCode = "200", description = "Sky found")
     @ApiCommonErrorResponses
     @GetMapping(value = "/{skyId}", version = "v1")
-    public CompletableFuture<ResponseEntity<SkyResponse>> getSky(@PathVariable("skyId") UUID skyId) {
+    public CompletableFuture<ResponseEntity<SkyResponse>> getSky(@PathVariable UUID skyId) {
         return skyQueryService
                 .findById(skyId)
                 .thenApply(skyApiMapper::domainToApiResponse)
@@ -69,7 +69,7 @@ public class StarterController {
     @ApiResponse(responseCode = "204", description = "Sky updated")
     @ApiCommonErrorResponses
     @PutMapping(value = "/{skyId}", version = "v1")
-    public CompletableFuture<ResponseEntity<Void>> updateSky(@PathVariable("skyId") UUID skyId, @Valid @RequestBody UpdateSkyRequest request) {
+    public CompletableFuture<ResponseEntity<Void>> updateSky(@PathVariable UUID skyId, @Valid @RequestBody UpdateSkyRequest request) {
         return skyCommandService.updateSky(skyId, request.name())
                 .thenApply(ignored -> ResponseEntity.noContent().build());
     }
@@ -81,7 +81,7 @@ public class StarterController {
     @ApiResponse(responseCode = "204", description = "Sky deleted")
     @ApiCommonErrorResponses
     @DeleteMapping(value = "/{skyId}", version = "v1")
-    public CompletableFuture<ResponseEntity<Void>> deleteSky(@PathVariable("skyId") UUID skyId) {
+    public CompletableFuture<ResponseEntity<Void>> deleteSky(@PathVariable UUID skyId) {
         return skyCommandService.deleteSky(skyId)
                 .thenApply(ignored -> ResponseEntity.noContent().build());
     }

@@ -34,6 +34,8 @@ public class SkyCommandServicePrimary implements SkyCommandService {
         long startNs = System.nanoTime();
         logAuditStart("sky.create", skyId, subject);
 
+        // Object.class = no expected result: the command handlers are void
+        // (they emit events), so the gateway result is discarded.
         return commandGateway.send(new CreateSkyCommand(skyId, name), Object.class)
                 .thenApply(ignored -> skyId)
                 .whenComplete((id, ex) -> logAuditCompletion("sky.create", skyId, subject, startNs, ex));

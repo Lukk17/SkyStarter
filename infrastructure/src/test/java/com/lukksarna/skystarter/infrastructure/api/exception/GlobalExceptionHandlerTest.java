@@ -3,22 +3,33 @@ package com.lukksarna.skystarter.infrastructure.api.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.lukksarna.skystarter.domain.exception.SkyNotFoundException;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import org.axonframework.eventsourcing.eventstore.AppendEventsTransactionRejectedException;
 import org.axonframework.messaging.queryhandling.QueryExecutionException;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
+
+    private static ProblemDetail bodyOf(ResponseEntity<ProblemDetail> response) {
+        ProblemDetail body = response.getBody();
+        assertThat(body).isNotNull();
+        return body;
+    }
 
     @Test
     void notFoundException_returns404ProblemDetail() {
@@ -26,9 +37,9 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleNotFound(new SkyNotFoundException(id));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.NOT_FOUND);
-        assertThat(response.getBody().getTitle()).isEqualTo("Not Found");
-        assertThat(response.getBody().getDetail()).contains(id.toString());
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.NOT_FOUND);
+        assertThat(bodyOf(response).getTitle()).isEqualTo("Not Found");
+        assertThat(bodyOf(response).getDetail()).contains(id.toString());
     }
 
     @Test
@@ -37,9 +48,9 @@ class GlobalExceptionHandlerTest {
                 handler.handleIllegalArgumentException(new IllegalArgumentException("internal raw detail leak"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.ILLEGAL_ARGUMENT);
-        assertThat(response.getBody().getDetail()).isEqualTo("Invalid argument.");
-        assertThat(response.getBody().getDetail()).doesNotContain("internal raw detail leak");
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.ILLEGAL_ARGUMENT);
+        assertThat(bodyOf(response).getDetail()).isEqualTo("Invalid argument.");
+        assertThat(bodyOf(response).getDetail()).doesNotContain("internal raw detail leak");
     }
 
     @Test
@@ -48,7 +59,7 @@ class GlobalExceptionHandlerTest {
                 handler.handleNoResourceFoundException(new NoResourceFoundException(HttpMethod.GET, "/x", "/x"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.NOT_FOUND);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.NOT_FOUND);
     }
 
     @Test
@@ -59,7 +70,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleCompletion(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.NOT_FOUND);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.NOT_FOUND);
     }
 
     @Test
@@ -69,7 +80,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleCompletion(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.ILLEGAL_ARGUMENT);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.ILLEGAL_ARGUMENT);
     }
 
     @Test
@@ -79,7 +90,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleCompletion(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.INTERNAL);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.INTERNAL);
     }
 
     @Test
@@ -87,7 +98,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleException(new RuntimeException("x"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.INTERNAL);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.INTERNAL);
     }
 
     @Test
@@ -96,9 +107,9 @@ class GlobalExceptionHandlerTest {
                 handler.handleAccessDenied(new AccessDeniedException("nope"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.ACCESS_DENIED);
-        assertThat(response.getBody().getTitle()).isEqualTo("Forbidden");
-        assertThat(response.getBody().getDetail()).doesNotContain("nope");
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.ACCESS_DENIED);
+        assertThat(bodyOf(response).getTitle()).isEqualTo("Forbidden");
+        assertThat(bodyOf(response).getDetail()).doesNotContain("nope");
     }
 
     @Test
@@ -107,9 +118,9 @@ class GlobalExceptionHandlerTest {
                 handler.handleConflict(new AppendEventsTransactionRejectedException("conflicting append"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.CONFLICT);
-        assertThat(response.getBody().getTitle()).isEqualTo("Conflict");
-        assertThat(response.getBody().getDetail()).doesNotContain("conflicting append");
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.CONFLICT);
+        assertThat(bodyOf(response).getTitle()).isEqualTo("Conflict");
+        assertThat(bodyOf(response).getDetail()).doesNotContain("conflicting append");
     }
 
     @Test
@@ -120,7 +131,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleCompletion(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.CONFLICT);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.CONFLICT);
     }
 
     @Test
@@ -129,8 +140,8 @@ class GlobalExceptionHandlerTest {
                 handler.handleBadJson(new HttpMessageNotReadableException("malformed", null, null));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.BAD_JSON);
-        assertThat(response.getBody().getDetail()).isEqualTo("Malformed JSON request body.");
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.BAD_JSON);
+        assertThat(bodyOf(response).getDetail()).isEqualTo("Malformed JSON request body.");
     }
 
     @Test
@@ -141,7 +152,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleQueryExecutionException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.NOT_FOUND);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.NOT_FOUND);
     }
 
     @Test
@@ -151,7 +162,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleQueryExecutionException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.ILLEGAL_ARGUMENT);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.ILLEGAL_ARGUMENT);
     }
 
     @Test
@@ -161,6 +172,48 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ProblemDetail> response = handler.handleQueryExecutionException(ex);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat(response.getBody().getType()).isEqualTo(ProblemTypes.INTERNAL);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.INTERNAL);
+    }
+
+    @Test
+    void queryExecution_nullCause_returns500() {
+        QueryExecutionException ex = new QueryExecutionException("no cause", null);
+
+        ResponseEntity<ProblemDetail> response = handler.handleQueryExecutionException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.INTERNAL);
+    }
+
+    @Test
+    void completion_nullCause_returns500() {
+        CompletionException ex = new CompletionException("no cause", null);
+
+        ResponseEntity<ProblemDetail> response = handler.handleCompletion(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(bodyOf(response).getType()).isEqualTo(ProblemTypes.INTERNAL);
+    }
+
+    @Test
+    void validation_nullFieldMessage_fallsBackToGenericMessage() throws Exception {
+        MethodParameter parameter =
+                new MethodParameter(Holder.class.getDeclaredMethod("handle", String.class), 0);
+        BeanPropertyBindingResult bindingResult = new BeanPropertyBindingResult(new Object(), "request");
+        bindingResult.addError(new FieldError("request", "name", null));
+        MethodArgumentNotValidException ex = new MethodArgumentNotValidException(parameter, bindingResult);
+
+        ResponseEntity<ProblemDetail> response = handler.handleApiArgumentNotValidException(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        @SuppressWarnings("unchecked")
+        Map<String, String> errors = (Map<String, String>) bodyOf(response).getProperties().get("errors");
+        assertThat(errors).containsEntry("name", "invalid value");
+    }
+
+    @SuppressWarnings("unused")
+    private static final class Holder {
+        void handle(String name) {
+        }
     }
 }

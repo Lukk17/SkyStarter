@@ -5,6 +5,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.jspecify.annotations.NullMarked;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.MDC;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 // resolveSubject() runs. A @Component would be auto-registered in the outer
 // servlet filter chain ahead of Spring Security, where the context is still
 // empty -- making jwt.subject always null.
+@NullMarked
 public class JwtSubjectMdcFilter extends OncePerRequestFilter {
 
     public static final String MDC_KEY = "jwt.subject";
@@ -38,7 +41,7 @@ public class JwtSubjectMdcFilter extends OncePerRequestFilter {
         }
     }
 
-    private static String resolveSubject() {
+    private static @Nullable String resolveSubject() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth instanceof JwtAuthenticationToken jwtAuth) {
             return jwtAuth.getToken().getSubject();
