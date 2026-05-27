@@ -11,16 +11,18 @@ import com.lukksarna.skystarter.infrastructure.mapper.SkyPersistenceMapper;
 import com.lukksarna.skystarter.infrastructure.persistence.entity.SkyEntity;
 import com.lukksarna.skystarter.infrastructure.persistence.repository.mongo.SkyMongoRepository;
 import lombok.RequiredArgsConstructor;
+import org.axonframework.messaging.core.annotation.Namespace;
 import org.axonframework.messaging.eventhandling.annotation.EventHandler;
 import org.axonframework.messaging.queryhandling.annotation.QueryHandler;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
-// Axon 5 dropped the @ProcessingGroup annotation; processor grouping is now
-// purely configuration-driven (see application.yaml axon.eventhandling.processors).
-// The processor name resolves from the surrounding configuration, not from
-// an annotation on this class.
+// Axon 5 dropped @ProcessingGroup; the processor name is taken from @Namespace
+// (falling back to the handler's package otherwise). Without this the processor
+// would be named after this package and the
+// axon.eventhandling.processors.sky-projection-processor config would never apply.
+@Namespace("sky-projection-processor")
 @RequiredArgsConstructor
 @Component
 public class SkyProjection {
