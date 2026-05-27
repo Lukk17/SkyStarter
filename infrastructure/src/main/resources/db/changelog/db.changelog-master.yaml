@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/0001-axon-event-store-baseline.yaml
+      relativeToChangelogFile: false
+  - include:
+      file: db/changelog/0002-axon-5-event-store-migration.yaml
+      relativeToChangelogFile: false

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProfile name="docker | prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+                <includeMdcKeyName>jwt.subject</includeMdcKeyName>
+                <customFields>{"app":"sky-starter"}</customFields>
+            </encoder>
+        </appender>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="!docker &amp; !prod">
+        <property name="CONSOLE_LOG_PATTERN"
+                  value="%d{yyyy-MM-dd HH:mm:ss.SSS} %clr(%-5level) %clr(%.5t){magenta} %clr([%X{traceId:-},%X{spanId:-},%X{jwt.subject:-}]){faint} %clr(%logger{36}){cyan} %clr([SkyStarter]){blue} : %msg%clr(%kvp){faint}%n"/>
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+</configuration>

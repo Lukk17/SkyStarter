@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY:-}"
+      }
+    },
+    
+    "mongodb": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mongodb-mcp-server@latest",
+        "--readOnly",
+        "--connectionString",
+        "${MONGODB_URL:-mongodb://localhost:27017}"
+      ]
+    }
+  }
+}

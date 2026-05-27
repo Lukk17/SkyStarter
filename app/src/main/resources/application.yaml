@@ -1,0 +1,115 @@
+server:
+  port: 7777
+  tomcat:
+    max-swallow-size: 100MB
+    max-http-form-post-size: 100MB
+    connection-timeout: 20s
+
+spring:
+  application:
+    name: sky-starter
+  main:
+    banner-mode: log
+  #  As this is a PRIMARY datasource-Axon's Event Store will use this.
+  datasource:
+    url: "jdbc:postgresql://localhost:5432/starter"
+    username: "postgres"
+    password: "local"
+    driver-class-name: "org.postgresql.Driver"
+
+  jpa:
+    # disable database connection keeping for entire web request
+    open-in-view: false
+    hibernate:
+      # Liquibase owns schema mutations. Hibernate only validates that the
+      # runtime entity model matches the live schema. Anything else fails fast.
+      ddl-auto: validate
+    database-platform: com.lukksarna.skystarter.infrastructure.config.persistence.ByteaEnforcedPostgresSQLDialect
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        boot:
+          allow_jdbc_metadata_access: false
+
+  # This secondary, separate datasource for projections only.
+  data:
+    mongodb:
+      uri: "mongodb://localhost:27017/starter"
+  # Boot 4 moved the UUID representation property out of `spring.data.mongodb`
+  # into `spring.mongodb.representation`. Standard = canonical 16-byte BSON UUID.
+  mongodb:
+    representation:
+      uuid: standard
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: "https://keycloak.test:9443/realms/local"
+          jwk-set-uri: "https://keycloak.test:9443/realms/local/protocol/openid-connect/certs"
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+
+  threads:
+    virtual:
+      enabled: true
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      base-path: "/actuator"
+      exposure:
+        include: "health,info,readiness,liveness,prometheus"
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTLP_TRACING_ENDPOINT:}
+
+springdoc:
+  swagger-ui:
+    path: "/openapi/swagger-ui.html"
+    config-url: "/openapi/v3/api-docs/swagger-config"
+    url: "/openapi/v3/api-docs"
+    disable-swagger-default-url: true
+  api-docs:
+    path: "/openapi/v3/api-docs"
+  show-actuator: false
+
+axon:
+  axonserver:
+    # Axon will use the primary 'spring.datasource' above as aggregate DB
+    enabled: false
+  serializer:
+    events: jackson
+    messages: jackson
+    general: jackson
+  eventhandling:
+    processors:
+      # Use name from your @ProcessingGroup annotation
+      "sky-projection-processor":
+        # Axon 5 renamed TRACKING → POOLED (thread-pool-based streaming processor).
+        mode: pooled
+        # Number of parallel "work queues" (segments). A single instance claims
+        # all of them; adding instances rebalances segments across them. Event
+        # order per aggregate is preserved (all of one aggregate's events hash to
+        # the same segment). This starter runs single-instance, so 1 segment is
+        # the honest default — raise it (a power of 2) before scaling out.
+        initial-segment-count: 1
+
+logging:
+  level:
+    root: INFO
+    com.lukksarna: INFO
+    # to show SQL and NOSQL queries
+#    org.hibernate.SQL: DEBUG # this will show Axon pulling logs every 1 sec
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG

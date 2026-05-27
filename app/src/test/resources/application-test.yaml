@@ -1,0 +1,47 @@
+spring:
+  autoconfigure:
+    exclude:
+      # Boot 4 moved the OAuth2 resource-server autoconfig into a dedicated module.
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.reactive.ReactiveOAuth2ResourceServerAutoConfiguration
+  jpa:
+    hibernate:
+      # Liquibase manages the schema; Hibernate only validates.
+      ddl-auto: validate
+    database-platform: com.lukksarna.skystarter.infrastructure.config.persistence.ByteaEnforcedPostgresSQLDialect
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+        boot:
+          allow_jdbc_metadata_access: false
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    enabled: true
+  mongodb:
+    representation:
+      uuid: standard
+  threads:
+    virtual:
+      enabled: true
+
+axon:
+  axonserver:
+    enabled: false
+  serializer:
+    events: jackson
+    messages: jackson
+    general: jackson
+  eventhandling:
+    processors:
+      "sky-projection-processor":
+        mode: pooled
+        initial-segment-count: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

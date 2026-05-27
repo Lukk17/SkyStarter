@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+    <!--
+        Baseline suppressions for SkyStarter on Spring Boot 4.0.6 / Axon 5.1.0.
+
+        Each entry names the affected dependency and the risk vector. They are
+        all transitive deps we do not pin directly; the fix path is "upgrade
+        Spring Boot when a patch ships" unless noted otherwise. The until date
+        is the sunset: dependency-check re-fails the build then if the CVE is
+        still present, forcing a fresh review. Do not bump a sunset without a
+        written rationale in docs/development.md "Accepted findings".
+
+        Refresh the dependency mapping by running the dependencyCheckAggregate
+        task and reading build/reports/dependency-check-report.json.
+    -->
+
+    <suppress until="2026-08-22Z">
+        <notes>spring-boot-devtools 4.0.6. CVE targets Spring Tools 4 for Eclipse / STS IDE (RCE) -- false match against the devtools runtime artifact, which is developmentOnly and never in the prod jar. Review 2026-08-22.</notes>
+        <cve>CVE-2022-31691</cve>
+    </suppress>
+
+    <suppress until="2026-08-22Z">
+        <notes>opentelemetry-semconv 1.37.0. CVE is OpenTelemetry-Go (Go language) -- false match against the Java artifact, not applicable. Review 2026-08-22.</notes>
+        <cve>CVE-2026-29181</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>opentelemetry-semconv 1.37.0. OpenTelemetry-Go CVE, false match against the Java artifact. Not applicable. Review 2026-08-22.</notes>
+        <cve>CVE-2026-39882</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>opentelemetry-semconv 1.37.0. OpenTelemetry-Go CVE, false match against the Java artifact. Not applicable. Review 2026-08-22.</notes>
+        <cve>CVE-2026-39883</cve>
+    </suppress>
+
+    <suppress until="2026-08-22Z">
+        <notes>swagger-ui 5.32.2 (bundled Swagger UI assets, dev-facing docs page). DOMPurify XSS. Accepted: the docs UI is not a data path; review 2026-08-22.</notes>
+        <cve>CVE-2026-41238</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>swagger-ui 5.32.2 (bundled Swagger UI assets). DOMPurify XSS. Accepted: docs UI, not a data path; review 2026-08-22.</notes>
+        <cve>CVE-2026-41239</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>swagger-ui 5.32.2 (bundled DOMPurify in Swagger UI). XSS sanitizer bypass. Accepted: docs UI, not a data path; review 2026-08-22.</notes>
+        <cve>CVE-2026-41240</cve>
+    </suppress>
+
+    <suppress until="2026-08-22Z">
+        <notes>tomcat-embed-core 11.0.21. Resource-exhaustion DoS (allocation without limits). Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-41284</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>tomcat-embed-core 11.0.21. Improper input validation. Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-41293</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>tomcat-embed-core 11.0.21. WebSocket: HTTP Authorization header exposed to unexpected hosts. Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-42498</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>tomcat-embed-core 11.0.21. Digest-authentication bypass (deprecated auth scheme; not used here). Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-43512</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>tomcat-embed-core 11.0.21. LockOutRealm case-sensitivity (LockOutRealm not used here). Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-43513</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>tomcat-embed-core 11.0.21. AJP secret timing discrepancy (AJP connector not enabled here). Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-43514</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>tomcat-embed-core 11.0.21. Authorization bypass with multiple servlet method constraints. Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-43515</cve>
+    </suppress>
+
+    <suppress until="2026-08-22Z">
+        <notes>postgresql 42.7.10 (pgjdbc driver). Driver-level vulnerability. Upgrades with the next Spring Boot patch. Review 2026-08-22.</notes>
+        <cve>CVE-2026-42198</cve>
+    </suppress>
+
+    <!--
+        Retained defensively: not flagged by the current NVD dataset but were
+        present in the 2026-05-22 baseline. Keep until the sunset so a dataset
+        change doesn't silently re-break the build; drop on review if still gone.
+    -->
+    <suppress until="2026-08-22Z">
+        <notes>Not currently flagged by NVD; retained from the 2026-05-22 baseline. Review 2026-08-22.</notes>
+        <cve>CVE-2019-3826</cve>
+    </suppress>
+    <suppress until="2026-08-22Z">
+        <notes>Not currently flagged by NVD; retained from the 2026-05-22 baseline. Review 2026-08-22.</notes>
+        <cve>CVE-2026-42154</cve>
+    </suppress>
+
+</suppressions>

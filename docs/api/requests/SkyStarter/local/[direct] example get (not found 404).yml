@@ -1,0 +1,31 @@
+info:
+  name: "[direct] example get (not found 404)"
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter/00000000-0000-0000-0000-000000000000"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |
+        test("status is 404", function () {
+          expect(res.getStatus()).to.equal(404);
+        });
+        test("content-type is application/problem+json", function () {
+          expect(res.getHeader("content-type")).to.match(/application\/problem\+json/);
+        });
+        test("body is ProblemDetail with not-found type", function () {
+          const body = res.getBody();
+          expect(body.type).to.equal("urn:skystarter:error:not-found");
+          expect(body.title).to.equal("Not Found");
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

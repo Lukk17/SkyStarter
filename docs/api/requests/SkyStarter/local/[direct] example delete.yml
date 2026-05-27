@@ -1,0 +1,30 @@
+info:
+  name: "[direct] example delete"
+  type: http
+  seq: 4
+
+http:
+  method: DELETE
+  url: "{{protocol}}://{{baseUrl}}:{{port}}/v1/starter/:id"
+  params:
+    - name: id
+      value: "{{id}}"
+      type: path
+  body:
+    type: json
+    data: "{\r\n    \"name\": \"Songo\"\r\n}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |
+        test("status is 200", function () {
+          expect(res.getStatus()).to.equal(200);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

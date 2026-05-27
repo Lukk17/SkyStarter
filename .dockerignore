@@ -1,0 +1,53 @@
+!Dockerfile
+!gradlew
+!build.gradle.kts
+!settings.gradle.kts
+!gradle/
+
+!app/src/main
+!infrastructure/src/main
+!service/src/main
+!domain/src/main
+
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Gradle
+build/
+.gradle/
+gradlew.bat
+
+out
+target
+tmp/
+.tmp/
+.cache/
+reports/
+coverage/
+**/src/test/
+
+.env
+.env.*
+*.tar
+
+docker-compose.yaml
+docker-compose.*.yaml
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.DS_Store
+
+# Log files
+*.log
+logs/
+
+# Other
+README.md
+HELP.md
