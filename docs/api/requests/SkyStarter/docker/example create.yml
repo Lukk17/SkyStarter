@@ -16,20 +16,22 @@ runtime:
     - type: after-response
       code: |
         // Publish the created Sky id as a collection-level variable so the
-        // get / update / delete requests pick it up via {{id}}.
+        // get / update / delete requests pick it up via {{id}}. The POST body
+        // is { "skyId": "<uuid>" }.
         const body = res.getBody();
-        if (typeof body === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body)) {
-          bru.setVar("id", body);
+        const skyId = body && body.skyId;
+        if (typeof skyId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(skyId)) {
+          bru.setVar("id", skyId);
         }
     - type: tests
       code: |
         test("status is 201", function () {
           expect(res.getStatus()).to.equal(201);
         });
-        test("body is a UUID string", function () {
+        test("body has a UUID skyId", function () {
           const body = res.getBody();
-          expect(body).to.be.a("string");
-          expect(body).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+          expect(body).to.be.an("object");
+          expect(body.skyId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
         });
 
 settings:
