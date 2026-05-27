@@ -1,0 +1,62 @@
+info:
+  name: keycloak login
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{keycloakProtocol}}://{{keycloakHost}}:{{keycloakPort}}/realms/{{keycloakRealm}}/protocol/openid-connect/token"
+  headers:
+    - name: Content-Type
+      value: application/x-www-form-urlencoded
+  body:
+    type: form-urlencoded
+    data:
+      - name: grant_type
+        value: password
+      - name: client_id
+        value: local-client
+      - name: client_secret
+        value: nZUMlOQZufa5ljWW5hHXOtGKLn0mpTkN
+      - name: scope
+        value: openid profile email
+      - name: username
+        value: lukk
+      - name: password
+        value: test1234
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: "// Parse the JSON response body\r
+
+        const response = res.getBody();\r
+
+        \r
+
+        // Check if the access_token exists in the response\r
+
+        if (response && response.access_token) {\r
+
+        \    // If it exists, set it as an environment variable named \"token\"\r
+
+        \    bru.setEnvVar(\"token\", response.access_token);\r
+
+        \    console.log(\"Access token saved to 'token' environment variable.\");\r
+
+        } else {\r
+
+        \    // If it doesn't exist, log an error to the Postman console\r
+
+        \    console.error(\"Could not find 'access_token' in the response.\");\r
+
+        }"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: "Generated from cURL: curl --location 'https://keycloak:9443/realms/pharma/protocol/openid-connect/token' --header 'Content-Type: application/x-www-form-urlencoded' --data-urlencode 'grant_type=password' --data-urlencode 'client_id=pharmaApp-client' --data-urlencode 'client_secret=h3hZqwxKJsssrv1LKdnM3m7zr2qFOLge' --data-urlencode 'scope=openid profile email' --data-urlencode 'username=lukk' --data-urlencode 'password=test1234'"

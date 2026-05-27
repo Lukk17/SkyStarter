@@ -1,0 +1,29 @@
+# Profile used by the springdoc-openapi Gradle plugin to scrape the live spec
+# at /openapi/v3/api-docs.yaml. It boots the app with NO external infrastructure
+# (no PostgreSQL, no MongoDB, no Keycloak) so `generateOpenApiDocs` -- and thus
+# `build` -- never needs a running database.
+#
+# How it stays DB-free:
+#  - Excluding the JDBC/JPA autoconfigs removes the EntityManagerFactory. Axon's
+#    JpaEventStoreAutoConfiguration is @ConditionalOnBean(EntityManagerFactory),
+#    so it backs off and Axon falls back to its default in-memory event store.
+#  - OpenApiStubConfig supplies an in-memory TokenStore (the pooled processor's
+#    only remaining hard dependency) plus @Primary stub command/query services.
+#  - The Mongo client connects lazily (only on the first query, which never
+#    happens during a scrape), so leaving Mongo autoconfig on costs nothing.
+#  - lazy-initialization defers the rest; springdoc only pulls the controllers.
+spring:
+  main:
+    lazy-initialization: true
+  autoconfigure:
+    # Boot 4 relocated these autoconfigs into per-module packages; the FQN must
+    # match exactly or the exclusion silently no-ops and the app reaches for a DB.
+    exclude:
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration
+      - org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration
+      - org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration
+      - org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.servlet.OAuth2ResourceServerAutoConfiguration
+      - org.springframework.boot.security.oauth2.server.resource.autoconfigure.reactive.ReactiveOAuth2ResourceServerAutoConfiguration
+  liquibase:
+    enabled: false
