@@ -7,6 +7,8 @@ import com.lukksarna.skystarter.domain.port.SkyQueryService;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import org.axonframework.messaging.eventhandling.processing.streaming.token.store.TokenStore;
+import org.axonframework.messaging.eventhandling.processing.streaming.token.store.inmemory.InMemoryTokenStore;
 import org.springframework.core.env.Environment;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,12 +29,15 @@ import org.springframework.security.web.SecurityFilterChain;
  * @RestController annotations -- it does NOT need real PostgreSQL,
  * MongoDB, Liquibase, Keycloak, or Axon at runtime.
  *
- * application-openapi.yaml takes care of excluding the heavy autoconfigs
- * and turns on spring.main.lazy-initialization. With lazy init,
- * SkyServiceConfiguration's @Bean methods are never called (no one asks
- * for the real SkyCommandService / SkyQueryService) because the @Primary
- * stubs below win the resolution; SkyProjection is never instantiated
- * because nothing depends on it during a /openapi/v3/api-docs.yaml hit.
+ * application-openapi.yaml excludes the JDBC/JPA/OAuth2 autoconfigs and turns
+ * on spring.main.lazy-initialization. The @Primary stubs below win resolution
+ * of SkyCommandService / SkyQueryService, so SkyServiceConfiguration's real
+ * @Bean methods (which need the Axon gateways) are never called. Axon's pooled
+ * event processor still starts and binds SkyProjection, so it needs a TokenStore
+ * and an event store: the {@link #tokenStore()} bean below provides an in-memory
+ * one, and with no EntityManagerFactory the JPA event store backs off and Axon
+ * falls back to its default in-memory store. SkyProjection's MongoTemplate
+ * connects lazily, so no MongoDB is contacted during a scrape.
  *
  * The {@link #openApiFilterChain(HttpSecurity)} bean replaces the
  * production SecurityConfig (which is profile-gated to exclude openapi)
@@ -95,8 +100,16 @@ public class OpenApiStubConfig {
         };
     }
 
+    // The pooled event processor needs a TokenStore; the JPA-backed one is
+    // absent (no EntityManagerFactory in this profile). An in-memory store lets
+    // the processor start without a database. Real (non-mock) Axon component.
     @Bean
-    SecurityFilterChain openApiFilterChain(HttpSecurity http) throws Exception {
+    TokenStore tokenStore() {
+        return new InMemoryTokenStore();
+    }
+
+    @Bean
+    SecurityFilterChain openApiFilterChain(HttpSecurity http) {
         return http
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
                 .csrf(AbstractHttpConfigurer::disable)
